@@ -145,7 +145,7 @@ defaultは64で論理coreの数以上にした方が良いようです.
 
 #### `-DHPX_WITH_PARCELPORT_MPI=ON`/`-DHPX_WITH_PARCELPORT_TCP=OFF`
 通信にMPIを使う場合に指定するoptionです.
-defalutは`-DHPX_WITH_PARCELPORT_MPI=DFF`/`-DHPX_WITH_PARCELPORT_TCP=ON`ですが遅いのでMPIを使った方が良いそうです.
+defaultは`-DHPX_WITH_PARCELPORT_MPI=DFF`/`-DHPX_WITH_PARCELPORT_TCP=ON`ですが遅いのでMPIを使った方が良いそうです.
 MPIを使わない場合これらの変数の指定は不要です.
 
 ## buildの実行
