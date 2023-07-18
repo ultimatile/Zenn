@@ -1,0 +1,9 @@
+complex.cpp: In function 'int main()':
+complex.cpp:8:31: error: unable to find numeric literal operator 'operator""j'
+    8 |     float _Complex c3 = 1.0 + 2.0j;
+      |                               ^~~~
+complex.cpp:8:31: note: use '-fext-numeric-literals' to enable more built-in suffixes
+complex.cpp:9:31: error: unable to find numeric literal operator 'operator""j'
+    9 |     float _Complex c4 = 2.0 + 4.0j;
+      |                               ^~~~
+complex.cpp:9:31: note: use '-fext-numeric-literals' to enable more built-in suffixes

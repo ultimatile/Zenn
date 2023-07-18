@@ -1,0 +1,13 @@
+complex.cpp(8): warning #3494: a user-provided literal suffix must begin with "_"
+      float _Complex c3 = 1.0 + 2.0j;
+                                ^
+
+complex.cpp(8): error: user-defined literal operator not found
+      float _Complex c3 = 1.0 + 2.0j;
+                                ^
+
+complex.cpp(9): error: user-defined literal operator not found
+      float _Complex c4 = 2.0 + 4.0j;
+                                ^
+
+compilation aborted for complex.cpp (code 2)
