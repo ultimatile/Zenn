@@ -28,3 +28,5 @@ finite correlated state
 # tensor ring vs tensor chain
 # renormalization?
 # 2TEBD, TEBD2, TEBD^2
+
+https://twitter.com/IRFDMRG/status/1683520872244740096
