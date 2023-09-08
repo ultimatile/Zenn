@@ -17,6 +17,10 @@ tensor network法で用いられる独特の用語に面食らう人が増えて
 もう1つは**tensor network法とは何か?**というものである.
 https://twitter.com/termoshtt/status/1676955815201341440
 
+tensorとtensor場の混同
+https://manabitimes.jp/math/1919
+
+
 # vector, matrix, tensor
 # rank, order, dimension
 # MPS vs TT
