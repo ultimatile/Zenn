@@ -1,15 +1,19 @@
 ---
-title: "hoge"
+title: "Juliaのmodule/package間の名前の衝突の回避"
 emoji: "🦀"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [julia]
 published: false
 ---
 
-## はじめに
-Juliaで当該sourceから他のsourceにあるものを使う場合に`import`と`using`で読み込みます.
+##　はじめに
+Juliaでpackageを用いる場合, 通常は`using`で読み込みます.
+これは`using`で読み込まれたものを現在の名前空間に加えてしまうため^[名前空間が], 
 
-恐らく[公式document](https://docs.julialang.org/en/v1/manual/modules/)に全て書いてあると思いますが, ざっくりさわりをまとめます.
+## はじめに
+Juliaで外部moduleにあるものを使う場合に`import`と`using`で読み込みます.
+
+[公式document](https://docs.julialang.org/en/v1/manual/modules/)に全て書いてあると思いますが, できるだけ短く要点をまとめたい.
 
 ## `using`と`export`
 `using`は`export`されたものを読み込みます.
