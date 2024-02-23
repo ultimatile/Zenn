@@ -93,7 +93,13 @@ Monte Carlo法などのシミュレーションでは(擬似)乱数を用いて�
 ## 擬似乱数生成器
 ### 線形合同法
 - 混合合同法
-- 
+- 乗算合同法
+### Merseene Twister
+### PCG
+### Xorshift
+https://prng.di.unimi.it
+### M系列
+maximal length sequence
 
 各言語の標準ライブラリのデフォルト擬似乱数生成器
 

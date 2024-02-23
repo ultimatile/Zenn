@@ -59,7 +59,7 @@ If you need to have llvm first in your PATH, run:
 
 2つ目は環境変数などを毎回設定するのが面倒ということです.
 上記のcommandを覚えたり, どこかに記録しておかないといけません.
-また, 上記のmessageはinstallした際にしか表示されないので1度忘れると再確認するのも面倒です.
+~~また, 上記のmessageはinstallした際にしか表示されないので1度忘れると再確認するのも面倒です.~~`brew info llvm`で再表示可能でした．
 
 これらの問題を解決するために, [Environment Modules](http://modules.sourceforge.net/)を用いて環境変数などの設定を管理します.
 Environment Modulesは環境変数などを管理するためのpackageで, 共同利用スパコンでよく使われています.
