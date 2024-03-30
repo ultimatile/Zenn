@@ -1,5 +1,5 @@
 ---
-title: "ARM MacにRoseta2でx86-64 Rust環境を用意する"
+title: "ARM MacにRosetta2でx86-64 Rust環境を用意する"
 emoji: "🦀"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [rust, x86, macos, rosetta2]
