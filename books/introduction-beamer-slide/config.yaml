@@ -1,0 +1,9 @@
+title: "Beamerによる研究発表スライド作成入門"
+summary: "Beamerで研究発表スライドを作成する方法を解説する"
+topics: [latex, beamer]
+published: false
+price: 0 # 有料の場合200〜5000
+# 本に含めるチャプターを順番に並べましょう
+chapters:
+  - example1
+  - example2
