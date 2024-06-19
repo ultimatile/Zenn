@@ -65,3 +65,19 @@ upspin:0, downspin:1として指定します．
 ```
 i 0 i 1 j 1 j 0 ReJ+- ImJ+-
 ```
+
+### $S^-_iS^+_j$
+
+```
+i 1 i 0 j 0 j 1 ReJ-+ ImJ-+
+```
+
+### $S^z_iS^z_j$
+
+```
+i 0 i 0 j 0 j 0  0.25 ReJzz  0.25 ImJzz
+i 0 i 0 j 1 j 1 -0.25 ReJzz -0.25 ImJzz
+i 1 i 1 j 0 j 0 -0.25 ReJzz -0.25 ImJzz
+i 1 i 1 j 1 j 1  0.25 ReJzz  0.25 ImJzz
+```
+

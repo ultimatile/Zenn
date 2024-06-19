@@ -49,7 +49,7 @@ versionは適宜読み替えてください.
 
 ## Boostのbuildの必要性
 HPXはAsioを要求するのですが, [Boost.Asio](https://www.boost.org/doc/libs/1_81_0/doc/html/boost_asio.html)を使いたい場合はBoostのbuildが必要です.
-最初はBoost.Asioを使おうとしようとしていたのですがBoost.Asioのversion情報がうまく渡せなくて動かなかったので, `-DHPX_WITH_FETCH_ASIO=ON`を指定してHPXに落としてきてもらいました.
+最初はBoost.Asioを使おうとしていたのですがBoost.Asioのversion情報がうまく渡せなくて動かなかったので, `-DHPX_WITH_FETCH_ASIO=ON`を指定してHPXに落としてきてもらいました.
 HPXに落としてもらう場合はBoostのbuildは不要です.
 この設定を使うとAsioを落とすために外部と通信する必要があるため, 計算nodeではbuildの設定ができないことに注意してください.
 

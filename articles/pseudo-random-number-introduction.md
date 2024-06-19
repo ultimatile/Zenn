@@ -52,16 +52,17 @@ Monte Carlo法などのシミュレーションでは(擬似)乱数を用いて�
 乱数には，ハードウェアを利用して生成される物理乱数とアルゴリズムによって生成される疑似乱数の2種類があります.
 物理乱数の生成に使われるハードウェアの具体例としては，定電圧ダイオードや放射性物質の崩壊，レーザー光を利用したものなどがあるそうです．
 詳しくは[シミュレーションのための乱数入門](https://www.jspf.or.jp/Journal/PDF_JSPF/9606-08koza.pdf)の2.2節「物理乱数」を参照してください．
+
 ## TL;DR
 - 疑似乱数の実装の性能は主に
   - 周期
-  - 等分布性
+  - 均等分布性
   - 生成速度
   - 実行ファイルのサイズ
   - 実行時使用メモリ量
   - 並列実装のしやすさ
   で決まります.
-周期及び等分布性の良さからMerrsenne Twister法が広くdefault
+周期の長く及び均等分布性が高いことからMerrsenne Twister法が広くdefaultの疑似乱数生成機として用いられてきました．
 <!-- TODO: 続きを書く -->
 
 ### コラム: 真正乱数と疑似乱数
@@ -189,3 +190,14 @@ https://hpc-phys.kek.jp/workshop/workshop190318/saito_190318.pdf
 検定に合格することは必要条件でも十分条件でもない．
 自分の用途に合致すればよいので自分の用途に適したテストを行うべき．
 ただし検定は一定のクオリティを示すので，検定に合格する乱数をできるだけ用いた方が良い．
+
+# 文献案内
+[Stochastic Simulation and Monte Carlo Methods](https://www-labs.iro.umontreal.ca/~lecuyer/ift6561/book.pdf)
+
+並列乱数生成に詳しいPierre L'Ecuyer氏による500ページ超（2024年5月現在）の講義ノート．
+2024年5月現在未完成ながら，最近の擬似乱数生成器，準乱数や並列乱数生成について詳しく書かれている．
+メルセンヌツイスターに関しても詳細が書かれている．
+
+[Random Number Generators—Principles and Practices: A Guide for Engineers and Programmers](https://www.amazon.co.jp/dp/1501515136)
+乱数生成器についての本．
+中身は読んだことないので分からないです．
