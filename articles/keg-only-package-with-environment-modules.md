@@ -47,7 +47,7 @@ For compilers to find llvm you may need to set:
 1つ目は`PATH`変数の設定です.
 上記のmessageの該当部分は
 
-```:terminal
+```zsh:terminal
 If you need to have llvm first in your PATH, run:
   echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.zshrc
 ```
@@ -61,7 +61,7 @@ If you need to have llvm first in your PATH, run:
 上記のcommandを覚えたり, どこかに記録しておかないといけません.
 ~~また, 上記のmessageはinstallした際にしか表示されないので1度忘れると再確認するのも面倒です.~~`brew info llvm`で再表示可能でした．
 
-これらの問題を解決するために, [Environment Modules](http://modules.sourceforge.net/)を用いて環境変数などの設定を管理します.
+これらの問題を解決するために[Environment Modules](http://modules.sourceforge.net/)を用いて環境変数などの設定を管理します.
 Environment Modulesは環境変数などを管理するためのpackageで, 共同利用スパコンでよく使われています.
 Environment Modulesを導入することで
 ```zsh:terminal
@@ -96,31 +96,29 @@ keg-only packageの管理方法として他に良い方法があれば教えて�
 
 conflict llvm
 
+set root "$::env(HOMEBREW_PREFIX)/opt/llvm"
+
 # set PATH
-prepend-path PATH /opt/homebrew/opt/llvm/bin
+prepend-path PATH "$root/bin"
 
 # set CPPFLAGS
 if { [info exists ::env(CPPFLAGS)] } {
-    setenv CPPFLAGS "-I/opt/homebrew/opt/llvm/include $::env(CPPFLAGS)"
+    setenv CPPFLAGS "-I$root/include $::env(CPPFLAGS)"
 } else {
-    setenv CPPFLAGS "-I/opt/homebrew/opt/llvm/include"
+    setenv CPPFLAGS "-I$root/include"
 }
 
 # set LDFLAGS
 if { [info exists ::env(LDFLAGS)] } {
-    #setenv LDFLAGS "-L/opt/homebrew/opt/llvm/lib $::env(LDFLAGS)"
+    #setenv LDFLAGS "-L$root/lib $::env(LDFLAGS)"
     # To use the bundled libc++
-    setenv LDFLAGS "-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/llvm/lib/c++ -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++ $::env(LDFLAGS)"
+    setenv LDFLAGS "-L$root/lib -L$root/lib/c++ -Wl,-rpath,$root/lib/c++ $::env(LDFLAGS)"
 } else {
-    #setenv LDFLAGS "-L/opt/homebrew/opt/llvm/lib"
+    #setenv LDFLAGS "-L$root/lib"
     # To use the bundled libc++
-    setenv LDFLAGS "-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/llvm/lib/c++ -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++"
+    setenv LDFLAGS "-L$root/lib -L$root/lib/c++ -Wl,-rpath,$root/lib/c++"
 }
 ```
-
-:::message
-Homebrewのinstall directoryを変更している場合は`/opt/homebrew`の部分を適宜読み替えてください.
-:::
 
 `modulefile`はTcl言語で記述されます.
 詳細については述べませんが簡単に記載内容について説明します.
@@ -129,10 +127,11 @@ Homebrewのinstall directoryを変更している場合は`/opt/homebrew`の部�
 - `conflict llvm`は同時にloadできないmoduleを指定するための設定です
 ^[これは, 例えばLLVM Clangの異なる複数のversionを管理する場合に, 異なるversionのLLVM Clangを同時にloadすることができないようにするというような使い方をします.
 ここでは`modulefile`のfile名と同じ名前を`conflict`で指定しているので少し紛らわしいですが, `conflict`で指定する名前は`modulefile`のfile名とは関係なく, `conflict`で指定した名前で衝突判定が行われます.].
+- `set root`で`root`という`modulefile`内で用いる変数を設定しています.`HOMEBREW_PREFIX`(AArch64版Homebrewの場合のdefaultは`/opt/homebrew`)はHomebrewによってinstallされたpackageのroot directoryの場所を指定する環境変数です.これを`$::env(HOMEBREW_PREFIX)`として取得し`root`に代入しています.
 - `PATH`は`prepend-path`で設定します. `prepend-path`は現在の`PATH`変数の先頭に追加します.
 - `append-path`で現在の`PATH`の末尾に追加することもできます.
 - 環境変数は`setenv`で設定します.
-- `setenv`は`prepend-path`や`append-path`と異なり, 現在の環境変数を上書きします.
+- `setenv`は`prepend-path`や`append-path`と異なり現在の環境変数を上書きします.
 そのため, 環境変数が既に設定されているか否かを判定し, 動作を変えるようにしています.
 - `LDFLAGS`の設定が少し複雑なのは, LLVMの標準library`libc++`を使う設定をしているためです. Apple Clangにbundleされた`libc++`を使用して問題ない場合はcomment outしている部分の設定を代わりに使ってください.
 
@@ -148,16 +147,14 @@ brew install modules
 
 次に, `module` commandを使用するために`.zshrc`に以下を追記します^[bashなど, 他の環境を使っている方は適宜読み替えてください. `source` commandの内容も変わるはずなので, Environment Modulesをinstallした際に表示されるmessageを確認してください].
 `MODULEFILE_PATH`は`modulefiles`を置くdirectoryのpathを記載してください.
-また, Homebrewのinstall directoryを変更している場合は`/opt/homebrew`を変更した場所にしてください.
 1行目に関してはEnvironment Modulesをinstallした際に出てくるmessageに書いてあるcommandを参照した方が確実です.
 
 ```zsh:.zshrc
-source /opt/homebrew/opt/modules/init/zsh
+source $HOMEBREW_PREFIX/opt/modules/init/zsh
 module use /MODULEFILE_PATH/modulefiles
 ```
 
-追加したらterminalを再起動するか
-`exec $SHELL`を実行して設定を反映させます.
+追加したらterminalを再起動するか`source ~/.zshrc`を実行して設定を反映させます.
 
 `module` commandが使えるか確認します.
 
