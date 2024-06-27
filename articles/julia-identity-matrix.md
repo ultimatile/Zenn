@@ -1,6 +1,6 @@
 ---
 title: "Juliaでの単位行列の作り方"
-emoji: "🟣"
+emoji: "👾"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [julia, 線形代数]
 published: true
