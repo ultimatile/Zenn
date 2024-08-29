@@ -7,7 +7,7 @@ published: false
 ---
 
 ## はじめに
-閉じた量子系の時刻$t=t_\mathrm{begin}$から時刻$t=t_\mathrm{end}$のHamiltonian$\mathcal{H}(t)$による実時間発展^[実時間という言い方は，統計力学における逆温度$\beta\leftrightarrow\mathrm{i}t$という形式的対応から虚時間と呼ばれることに対するretronymです．実時間発展を英語で書くとreal-time dynamicsとかreal-time evolutionとかになりますが，量子系の時間発展の文脈では日常語のリアルタイムという意味ではないので注意して下さい．]は$\ket{\psi(t=t_\mathrm{begin})}$を初期状態として，unitary演算子$\mathcal{U}(t_1,t_2)$を用いて，
+閉じた量子系の時刻$t=t_\mathrm{begin}$から時刻$t=t_\mathrm{end}$のHamiltonian$\mathcal{H}(t)$による実時間発展^[実時間という言い方は，統計力学における逆温度$\beta\leftrightarrow\mathrm{i}t$という形式的対応から虚時間と呼ばれることに対するretronymです．実時間発展を英語で書くとreal-time dynamicsとかreal-time evolutionとかになりますが，量子系の時間発展の文脈では日常語のリアルタイムという意味ではないので注意して下さい．]は$\ket{\psi(t=t_\mathrm{begin})}$を初期状態として，unitary演算子$\mathcal{U}(t_1,t_2)$を用いて
 
 $$\ket{\psi(t=t_\mathrm{end})} = \mathcal{U}(t_1=t_\mathrm{end},t_2=t_\mathrm{begin})\ket{\psi(t=t_\mathrm{begin})}$$
 
@@ -58,7 +58,7 @@ i sigmai j sigmaj k sigmak l sigmal Re Im
 ```
 です．
 
-upspin:0, downspin:1として指定します．
+$S=1/2$の場合はupspin:0, downspin:1として指定します．
 
 ### $S^+_iS^-_j$
 
