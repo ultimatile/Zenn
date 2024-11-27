@@ -173,5 +173,5 @@ module load llvm
 
 ## 参考文献
 https://modules.readthedocs.io/en/latest/modulefile.html
-https://x.momo86.net/article/36#config
+https://enp1s0.github.io/blog/cuda/2018/06/06/environment-modules.html
 https://qiita.com/Ag_smith/items/f268ad27165a60aecd35
