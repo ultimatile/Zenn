@@ -8,7 +8,7 @@ published: false
 ---
 
 :::message
-この記事は [Typst Advent Calendar 2024](https://qiita.com/advent-calendar/2024/typst) の12日目の記事です．昨日は[@Omochice](https://qiita.com/Omochice)さんの「typixでtouyingをやりたい」でした．明日は[@ozekik](https://qiita.com/ozekik)さんの「Typstで論理式/証明図を書く (仮)」です．
+この記事は [Typst Advent Calendar 2024](https://qiita.com/advent-calendar/2024/typst) の12日目の記事です．昨日は[@Omochice](https://qiita.com/Omochice)さんの「[Typixを使って複数環境でTypstでスライドをコンパイルする](https://zenn.dev/omochice/articles/reproducible-compilation-of-typst-by-typix)」でした．明日は[@ozekik](https://qiita.com/ozekik)さんの「Typstで論理式/証明図を書く (仮)」です．
 :::
 
 ## はじめに
@@ -139,4 +139,7 @@ Typstで入力した文字が自動的に斜体になる数式環境で文字を
 数学的操作を表す場合は使った方が良いです．1文字の場合は`op(upright(B))`という書き方になります． 以下のように違いが確認できます．
 ![](/images/a-typst-upright-in-math/Fig6.png =700x)
 フローチャートが多少複雑化することと使うことはあまりなさそうなことから省略しました．
+
+真実（？）が知りたい方向けに作成した完全版のフローチャートは以下のようになります．
+![](/images/a-typst-upright-in-math/Fig7.png =700x)
 :::
