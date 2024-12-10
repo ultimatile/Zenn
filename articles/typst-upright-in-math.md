@@ -3,8 +3,8 @@ title: "Typstの数式中で文字を斜めにしない方法"
 emoji: "🔰"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["typst","math"]
-published: false
-# published_at: 2024-12-12 00:00 
+published: true
+published_at: 2024-12-12 00:00 
 ---
 
 :::message
