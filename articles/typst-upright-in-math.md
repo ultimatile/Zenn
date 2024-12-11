@@ -1,5 +1,5 @@
 ---
-title: "Typstの数式中で文字を斜めにしない方法"
+title: "Typstで数式中の文字を斜めにしない方法"
 emoji: "🔰"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["typst","math"]
