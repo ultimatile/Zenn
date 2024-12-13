@@ -8,7 +8,7 @@ published_at: 2024-12-12 00:00
 ---
 
 :::message
-この記事は [Typst Advent Calendar 2024](https://qiita.com/advent-calendar/2024/typst) の12日目の記事です．昨日は[@Omochice](https://qiita.com/Omochice)さんの「[Typixを使って複数環境でTypstでスライドをコンパイルする](https://zenn.dev/omochice/articles/reproducible-compilation-of-typst-by-typix)」でした．明日は[@ozekik](https://qiita.com/ozekik)さんの「Typstで論理式/証明図を書く (仮)」です．
+この記事は [Typst Advent Calendar 2024](https://qiita.com/advent-calendar/2024/typst) の12日目の記事です．昨日は[@Omochice](https://qiita.com/Omochice)さんの「[Typixを使って複数環境でTypstでスライドをコンパイルする](https://zenn.dev/omochice/articles/reproducible-compilation-of-typst-by-typix)」でした．明日は[@ozekik](https://qiita.com/ozekik)さんの「[Typstで論理式/証明図を書く](https://zenn.dev/ozekik/articles/0f5bbb6a77af20)」です．
 :::
 
 ## はじめに
@@ -34,7 +34,6 @@ Typst 0.12.0で動作確認しています．
 :::details 本文中に表示されている数式に関して
 Zennでは数式のTypst記法は未対応のため本文中に表示されている数式は$\LaTeX$記法で書いています．そのためTypstの表示と差異がある場合があります． 実際のTypstの表示が必要な場合などはTypstのコードと実行結果を画像の形で挿入しています．
 :::
-
 
 ## 数学的操作を表す場合はテキスト演算子を使う
 
@@ -82,7 +81,7 @@ $$\mathrm{colim}^u_d$$
 
 と記載されています． 簡単に訳すと，数式環境では1文字は常にそのまま表示されるということを述べていると思います．
 この説明だけでは今回の挙動の説明になっているとは思いませんが，とにかく1文字は特別扱いされていて2文字以上とは異なる処理をされていることが分かります．
-文字数の違いで挙動が異なるのはTypstで数式を書いたときにすぐに分かります．例えば適当に`$xy$`と書いてみると`error: unknown variable: xy`と出てコンパイルに失敗します． これを`$x y$`とするとコンパイルが通り，$xy$と表示されます．コンパイルが通るということは`error: unknown variable: x`(もしくは`error: unknown variable: y`)とはならないことを意味しています．
+文字数の違いで挙動が異なるのは数式を書き始めるとすぐに分かります．例えば適当に`$xy$`と書いてみると`error: unknown variable: xy`と出てコンパイルに失敗します． これを`$x y$`とするとコンパイルが通り，$xy$と表示されます．コンパイルが通るということは`error: unknown variable: x`(もしくは`error: unknown variable: y`)とはならないことを意味しています．
 2文字以上の文字列の取り扱いに関しては[Typstの公式ドキュメントのVariablesの項目](https://typst.app/docs/reference/math/#variables)で
 
 > Multiple letters, however, are interpreted as variables and functions.
