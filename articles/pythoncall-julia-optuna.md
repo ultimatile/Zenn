@@ -50,10 +50,10 @@ $$ f(x, y) = (x^2 + y - 11)^2 + (x + y^2 - 7)^2 $$
 
 ## 実行準備
 
-まず以下のように作業ディレクトリを作成します．
+まず以下のようにターミナルでコマンドを実行し作業ディレクトリを作成します．
 プロジェクト名は`optuna-jl`とします．
 
-```shell-session
+```shell-session:terminal
 uv init optuna-jl
 cd optuna-jl
 ```
@@ -64,7 +64,7 @@ cd optuna-jl
 
 続いて以下のコマンドを実行することでOptunaを依存関係に追加し，Pythonの仮想環境を用意します．
 
-```shell-session
+```shell-session:terminal
 uv add optuna
 uv sync # Pythonの仮想環境を作成
 ```
@@ -112,13 +112,13 @@ if __name__ == "__main__":
 
 以下のコマンドで実行します．
 
-```shell-session
+```shell-session:terminal
 uv run optuna-example.py
 ```
 
 ### 実行結果
 
-```shell-session
+```shell-session:terminal
 # (めっちゃいっぱい出る)
 [I 2025-01-26 04:33:34,594] Trial 999 finished with value: 0.0758888563447687 and parameters: {'x': 3.6225087377750724, 'y': -1.852452409575476}. Best is trial 787 with value: 0.0012883064501580882.
 min: 0.0012883064501580882 at {'x': 3.5841488123848735, 'y': -1.8573979664983822}
@@ -133,7 +133,7 @@ atの後に最小値として得られた値を取る$x,y$の値が表示され�
 それではJuliaに話を移します．
 `optuna-jl`ディレクトリで以下を実行します．
 
-```shell-session
+```shell-session:terminal
 julia --project=. -e 'using Pkg; Pkg.add("PythonCall")'
 ```
 
@@ -179,7 +179,7 @@ PythonとJulia間のオブジェクトの変換はPythonCall.jlが自動的に�
 以下のコマンドで実行します．
 なお，`--project`オプションはプロジェクトのディレクトリを現在のディレクトリに指定するために使用しています．
 
-```shell-session
+```shell-session:terminal
 env JULIA_CONDAPKG_BACKEND="Null" uv run julia --project optuna-example.jl
 ```
 
@@ -192,7 +192,7 @@ Juliaではコード中に環境変数を設定することができます．
 上記コードの先頭にあるコメントアウトを外すことで環境変数を設定することができます．
 この場合，実行コマンドは
 
-```shell-session
+```shell-session:terminal
 uv run julia --project optuna-example.jl
 ```
 
@@ -207,7 +207,7 @@ uv run julia --project optuna-example.jl
 
 実行コマンドは
 
-```shell-session
+```shell-session:terminal
 julia --project optuna-example.jl
 ```
 
