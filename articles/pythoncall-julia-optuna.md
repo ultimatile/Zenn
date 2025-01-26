@@ -41,9 +41,11 @@ Optuna 4.2.0
 ## 問題設定
 
 [上述の記事](https://myenigma.hatenablog.com/entry/2019/01/29/204714)と同じ問題をOptunaで解いてみます．
-問題としては以下の2変数実函数の[Himmelblau函数](https://en.wikipedia.org/wiki/Himmelblau%27s_function)を最小化する問題です（$x,y \in \mathbb{R}$）．
+問題としては以下の2変数実函数の[Himmelblau函数](https://en.wikipedia.org/wiki/Himmelblau%27s_function)（$x,y \in \mathbb{R}$）
 
 $$ f(x, y) = (x^2 + y - 11)^2 + (x + y^2 - 7)^2 $$
+
+を最小化する問題です．
 
 最小値は4箇所で0になります．
 詳細は[Wikipediaの記事](https://en.wikipedia.org/wiki/Himmelblau%27s_function)などを参照してください．
