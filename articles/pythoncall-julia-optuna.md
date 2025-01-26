@@ -1,29 +1,33 @@
 ---
-title: "JuliaでOptunaを使う"
+title: "PythonCall.jlでJuliaからOptunaを使う"
 emoji: "👾"
 type: "tech" # tech: 技術記事 / idea: アイデア
-topics: ["python", "julia", "optuna"]
+topics: ["python", "julia", "optuna", "ffi"]
 published: false
 ---
 
 ## はじめに
 
-JuliaでOptunaを使う方法について紹介します．
+[Julia](https://github.com/JuliaLang/julia)のコード中で[Optuna](https://github.com/optuna/optuna)を使う方法について紹介します．
 
 同様の試みは
-<https://myenigma.hatenablog.com/entry/2019/01/29/204714>
-にありますが，こちらで紹介されている方法はPythonからJuliaを起動して値を受け取るような方法のため，値を取得するたびにJuliaを起動し直す余分な時間が発生します．
 
-今回はPythonCall.jlを使って繰り返しJuliaを起動することなく，JuliaでOptunaを使う方法を紹介します．
+@[card](https://myenigma.hatenablog.com/entry/2019/01/29/204714)
 
-PythonCall.jlはJuliaからPythonの函数などを呼び出すためのパッケージで，Optuna以外にも使用可能です．
-本記事はPythonCall.jlの使用例の一つとして読むこともできます．
+で行われています．
+こちらで紹介されている方法はPythonからJuliaを起動して値を受け取るような方法のため，値を取得するたびにJuliaを起動し直す余分な時間が発生します．
 
-Pythonのパッケージ管理にはuvを使用していますが，PythonCall.jlに任せることもできます．
+今回は[PythonCall.jl](https://github.com/JuliaPy/PythonCall.jl)を使って繰り返しJuliaを起動することなく，JuliaでOptunaを使う方法を紹介します．
+
+PythonCall.jlはJuliaからPythonの函数などを呼び出すためのパッケージで，Optuna以外のPythonパッケージにも使用可能です．
+本記事はPythonCall.jlの使用例の1つとして読むこともできます．
+
+今回Pythonのパッケージ管理には[uv](https://github.com/astral-sh/uv)を使用していますが，PythonCall.jlに任せることもできます．
+他のPython環境管理ツールでも適切に設定すれば同様のことができると思います．
 
 なお，各種ツールのインストールに関する説明は省略します．
 以下で説明するコードを実行するにはJuliaとuvがインストールされている必要があります．
-uvを使用しない場合は別途Pythonもインストールする必要があります．
+uvはパッケージだけではなくPython自体も管理しているため，uvを使用しない場合は別途Pythonもインストールする必要があります．
 
 ## 使用環境
 
@@ -36,13 +40,13 @@ Optuna 4.2.0
 
 ## 問題設定
 
-前述の記事と同じ問題をOptunaで解いてみます．
-問題としては以下の2変数函数のHimmelblau函数を最小化する問題です（$x,y \in \mathbb{R}$）．
+[上述の記事](https://myenigma.hatenablog.com/entry/2019/01/29/204714)と同じ問題をOptunaで解いてみます．
+問題としては以下の2変数実函数の[Himmelblau函数](https://en.wikipedia.org/wiki/Himmelblau%27s_function)を最小化する問題です（$x,y \in \mathbb{R}$）．
 
 $$ f(x, y) = (x^2 + y - 11)^2 + (x + y^2 - 7)^2 $$
 
 最小値は4箇所で0になります．
-詳細はWikipediaの記事などを参照してください．
+詳細は[Wikipediaの記事](https://en.wikipedia.org/wiki/Himmelblau%27s_function)などを参照してください．
 
 ## 実行準備
 
@@ -54,23 +58,28 @@ uv init optuna-jl
 cd optuna-jl
 ```
 
-続いて以下のコマンドを実行することでoptunaを依存関係に追加し，Pythonの仮想環境を用意します．
+上記のコマンドによって`optuna-jl`ディレクトリ下に`pyproject.toml`，`README.md`，`hello.py`が作成されています．
+`pyproject.toml`がPythonプロジェクトに関する設定ファイルです．
+他の`README.md`，`hello.py`は必要ありませんので消しても問題ありません．
+
+続いて以下のコマンドを実行することでOptunaを依存関係に追加し，Pythonの仮想環境を用意します．
 
 ```shell-session
 uv add optuna
 uv sync # Pythonの仮想環境を作成
 ```
 
-コマンド実行後プロジェクトのディレクトリに`.venv`ディレクトリが作成されます．`
+コマンド実行後，プロジェクトのディレクトリに`.venv`ディレクトリが作成されます．
+その他に`uv.lock`というuvがバージョン固定に用いるファイルが作成されます．
 
 ## Pythonのコード
 
 比較のためにPythonでのコードを示します．
-上述のブログのコードを改変して使用しています．
-`optuna.py`というファイル名で保存します．
-optunaのコードの説明は他の記事等多数あると思いますので，ここでは割愛します．
+[上述の記事](https://myenigma.hatenablog.com/entry/2019/01/29/204714)のコードを改変して使用しています．
+`optuna-example.py`というファイル名で保存します．
+Optunaのコードの説明は他の記事等多数あると思いますので，ここでは割愛します．
 
-```python:optuna.py
+```python:optuna-example.py
 """
 https://myenigma.hatenablog.com/entry/2019/01/29/204714
 original author: Atsushi Sakai
@@ -104,7 +113,7 @@ if __name__ == "__main__":
 以下のコマンドで実行します．
 
 ```shell-session
-uv run optuna.py
+uv run optuna-example.py
 ```
 
 ### 実行結果
@@ -125,17 +134,18 @@ atの後に最小値として得られた値を取る$x,y$の値が表示され�
 `optuna-jl`ディレクトリで以下を実行します．
 
 ```shell-session
-julia --project -e 'using Pkg; Pkg.add("PythonCall")'
+julia --project=. -e 'using Pkg; Pkg.add("PythonCall")'
 ```
 
-これでPythonCall.jlがインストールされます．
+これで現在のディレクトリのプロジェクトにPythonCall.jlがインストールされます．
+Juliaのパッケージ管理用の設定ファイルである`Project.toml`と`Manifest.toml`が作成されます．
 
 ## Juliaのコード
 
-以下のようにJuliaのコードを作成します．
-`optuna.jl`というファイル名で保存します．
+続いて以下のようにJuliaのコードを作成します．
+`optuna-example.jl`というファイル名で保存します．
 
-```julia:optuna.jl
+```julia:optuna-example.jl
 # 実行時に環境変数を設定しない場合は以下のコメントアウトを外す
 # ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
 
@@ -162,14 +172,15 @@ main()
 
 `import optuna`と書く代わりに`optuna = pyimport("optuna")`と書く以外はPythonのコードとほぼ同じです．
 PythonとJulia間のオブジェクトの変換はPythonCall.jlが自動的に行います．
-コードの書き方によっては変換がうまくいかない場合がありますが，その場合は`pyconvert`函数を使用して明示的に変換することができます．
+コードの書き方によっては変換がうまくいかない場合がありますが，その場合は`pyconvert`函数を使用して明示的に変換することができます（例：`pyconvert(Float64, trial.suggest_float("x", -5, 5))`）．
 
 ### 実行
 
-以下のコマンドで実行します．なお，`--project`オプションはプロジェクトのディレクトリを現在のディレクトリに指定するために使用しています．
+以下のコマンドで実行します．
+なお，`--project`オプションはプロジェクトのディレクトリを現在のディレクトリに指定するために使用しています．
 
 ```shell-session
-env JULIA_CONDAPKG_BACKEND="Null" uv run julia --project optuna.jl
+env JULIA_CONDAPKG_BACKEND="Null" uv run julia --project optuna-example.jl
 ```
 
 `env JULIA_CONDAPKG_BACKEND="Null"`は環境変数の設定をしています．
@@ -182,20 +193,22 @@ Juliaではコード中に環境変数を設定することができます．
 この場合，実行コマンドは
 
 ```shell-session
-uv run julia --project optuna.jl
+uv run julia --project optuna-example.jl
 ```
 
 となります．
 
 #### uvを使用しない場合
 
-また，環境変数に関する設定を消去してデフォルトのCondaPkg.jlを使用することもできます．
+また，環境変数に関する設定を消去してデフォルトの[CondaPkg.jl](https://github.com/JuliaPy/CondaPkg.jl)を使用することもできます．
 その場合はconda用のPythonパッケージに関する設定を記述する`CondaPkg.toml`ファイルを作成する必要があります．
+`CondaPkg.toml`の記述方法は[CondaPkg.jlのREADME](https://github.com/JuliaPy/CondaPkg.jl/blob/main/README.md)を参照してください．
+また[参考コードを置いているリポジトリ](https://github.com/ultimatile/optuna-julia-example)に`CondaPkg.toml`の例を置いてあります．
 
 実行コマンドは
 
 ```shell-session
-julia --project optuna.jl
+julia --project optuna-example.jl
 ```
 
 となります．
@@ -204,5 +217,11 @@ julia --project optuna.jl
 
 Pythonのコードと同様の結果が得られれば成功です．
 実行に時間がかかりすぎる場合は評価の回数を制御する`n_trials`の値を小さくしてください．
-なお，Himmelblau函数の最小値0を取る場所は4箇所あるためPythonの場合と同じ場所になるとは限りません．
+なお，Himmelblau函数の最小値0を取る場所は4箇所あるため，得られる最小値の位置がPythonの場合と同じ場所になるとは限りません．
 また，乱数を使用するため，Python版，Julia版ともに実行するたびに得られる最小値の位置が異なることがあります．
+
+## コード例置き場
+
+今回使用したコードは以下のリポジトリに置いてあります．
+
+@[card](https://github.com/ultimatile/optuna-julia-example)
