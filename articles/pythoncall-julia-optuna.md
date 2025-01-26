@@ -2,8 +2,8 @@
 title: "PythonCall.jlでJuliaからOptunaを使う"
 emoji: "👾"
 type: "tech" # tech: 技術記事 / idea: アイデア
-topics: ["python", "julia", "optuna", "ffi"]
-published: false
+topics: ["python", "julia", "optuna", "uv", "ffi"]
+published: true
 ---
 
 ## はじめに
