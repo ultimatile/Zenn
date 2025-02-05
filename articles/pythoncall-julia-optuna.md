@@ -136,7 +136,7 @@ atの後に最小値として得られた値を取る$x,y$の値が表示され�
 `optuna-jl`ディレクトリで以下を実行します．
 
 ```shell-session:terminal
-julia --project=. -e 'using Pkg; Pkg.add("PythonCall")'
+julia --project=. -e 'import Pkg; Pkg.add("PythonCall")'
 ```
 
 これで現在のディレクトリのプロジェクトにPythonCall.jlがインストールされます．
