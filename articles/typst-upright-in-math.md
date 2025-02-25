@@ -1,11 +1,23 @@
 ---
-title: "Typstで数式中の文字を斜めにしない方法"
+title: "Typstで数式中の文字を斜めにしない方法(<=v0.12)"
 emoji: "🔰"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["typst","math"]
 published: true
 published_at: 2024-12-12 00:00 
 ---
+
+
+:::message alert
+2025年2月19日にリリースされたTypst 0.13では以下の内容は不正確なものになっています．[Typst 0.13.0 の内容を早めに深堀り](https://zenn.dev/monaqa/articles/2025-02-20-typst-updates-v0-13#%E6%95%B0%E5%BC%8F%E5%86%85%E3%81%A7-%22a%22-%E3%81%AA%E3%81%A9%E3%81%AE%E6%96%87%E5%AD%97%E5%88%97%E3%81%8C%E7%AB%8B%E4%BD%93%E3%81%A7%E8%A1%A8%E7%A4%BA%E3%81%95%E3%82%8C%E3%82%8B%E3%82%88%E3%81%86%E3%81%AB%E3%81%AA%E3%81%A3%E3%81%9F)にあるように1文字の場合も二重引用符で囲むと立体になるようになりました．
+したがって使い分けは
+
+1. 数学的操作を表す場合はテキスト演算子を使う
+2. それ以外の文字列は二重引用符`"`で囲む
+
+というシンプルなものになりました．
+以下の内容はTypst 0.12以下のバージョンの話であることに注意してください．
+:::
 
 :::message
 この記事は [Typst Advent Calendar 2024](https://qiita.com/advent-calendar/2024/typst) の12日目の記事です．昨日は[@Omochice](https://qiita.com/Omochice)さんの「[Typixを使って複数環境でTypstでスライドをコンパイルする](https://zenn.dev/omochice/articles/reproducible-compilation-of-typst-by-typix)」でした．明日は[@ozekik](https://qiita.com/ozekik)さんの「[Typstで論理式/証明図を書く](https://zenn.dev/ozekik/articles/0f5bbb6a77af20)」です．
@@ -20,6 +32,7 @@ Typstでは`$`で囲むことで数式を入力することができますが，
 :::
 
 Typstの数式環境において文字を立体にするには以下の3つの方法があり，場合に応じて使い分ける必要があります．
+
 1. 数学的操作を表す場合はテキスト演算子を使う
 2. 2文字以上の文字列の場合は二重引用符`"`で囲む
 3. 1文字の場合は`upright`命令を使う
@@ -105,14 +118,12 @@ $$\mathrm{colim}^u_d$$
 1文字の場合でも立体にするには`upright`命令を使います． `$k_upright(B)$`と書くと$k_\mathrm{B}$と表示されます．
 2文字以上の場合に`upright`は使えないのかというと使えます． しかし`$D_upright(KL)$`と書くと前節で説明した通り`error: unknown variable: KL`とコンパイルエラーになるため，`$D_upright(K L)$`あるいは`$D_upright("KL")$`と書く必要があります． 前者は意味を考えるとスペースを入れるのは不自然です．後者は`$D_"KL"$`と書けば良いことは既に説明した通りですので冗長な書き方になっています．このように2文字以上の文字列に`upright`命令を使うことはあまり意味がありません．
 
-
 ## まとめ
 
 Typstで入力した文字が自動的に斜体になる数式環境で文字をまっすぐ（立体）にする方法について説明しました． 使い分けをフローチャートの形にまとめると以下のようになります^[このフローチャートは[fletcher](https://typst.app/universe/package/fletcher)というTypstのパッケージを使って作成しました．]．
 適切な命令を使い分けて素敵な美文書を作成しましょう．
 
 ![](/images/a-typst-upright-in-math/Fig2.png =700x)
-
 
 #### [補足1]
 
