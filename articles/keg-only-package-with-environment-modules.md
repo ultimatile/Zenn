@@ -132,8 +132,7 @@ if { [info exists ::env(LDFLAGS)] } {
 
 - `modulefile`のfile名は任意です. ここでは`llvm`としていますがversion名など他の名前でも問題ありません. 実際に使用する際には`module load llvm`というように`modulefile`のfile名を指定するため, 命名規則を明確にしておいた方が良いでしょう.
 - `#%Module`は`modulefile`の先頭に必ず書く必要があります.
-- `conflict llvm`は同時にloadできないmoduleを指定するための設定です
-  ^[これは, 例えばLLVM Clangの異なる複数のversionを管理する場合に, 異なるversionのLLVM Clangを同時にloadすることができないようにするというような使い方をします.
+- `conflict llvm`は同時にloadできないmoduleを指定するための設定です^[これは, 例えばLLVM Clangの異なる複数のversionを管理する場合に, 異なるversionのLLVM Clangを同時にloadすることができないようにするというような使い方をします.
   ここでは`modulefile`のfile名と同じ名前を`conflict`で指定しているので少し紛らわしいですが, `conflict`で指定する名前は`modulefile`のfile名とは関係なく, `conflict`で指定した名前で衝突判定が行われます.].
 - `set root`で`root`という`modulefile`内で用いる変数を設定しています.`HOMEBREW_PREFIX`(AArch64版Homebrewの場合のdefaultは`/opt/homebrew`)はHomebrewによってinstallされたpackageのroot directoryの場所を指定する環境変数です.これを`$::env(HOMEBREW_PREFIX)`として取得し`root`に代入しています.
 - `PATH`は`prepend-path`で設定します. `prepend-path`は現在の`PATH`変数の先頭に追加します.
