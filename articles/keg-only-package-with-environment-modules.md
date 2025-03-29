@@ -7,6 +7,7 @@ published: true
 ---
 
 ## はじめに
+
 macOSでHomebrewを使っている方はpackageを追加した際に以下のような表示を見たことがあるのではないでしょうか?
 
 ```:terminal
@@ -64,18 +65,23 @@ If you need to have llvm first in your PATH, run:
 これらの問題を解決するために[Environment Modules](http://modules.sourceforge.net/)を用いて環境変数などの設定を管理します.
 Environment Modulesは環境変数などを管理するためのpackageで, 共同利用スパコンでよく使われています.
 Environment Modulesを導入することで
+
 ```zsh:terminal
 module load llvm
 ```
+
 というcommandを実行するだけで`PATH`, `CPPFLAGS`, `LDFLAGS`が設定されるようになります.
 
-また, 
+また,
+
 ```zsh:terminal
 module unload llvm
 ```
+
 で元に戻すことができ, Apple Clangとの使い分けも容易になります.
 
 この後は
+
 - Environment Modulesでpackageを管理するための`modulefile`の作成
 - Environment Modules packageの導入
 
@@ -85,6 +91,7 @@ module unload llvm
 keg-only packageの管理方法として他に良い方法があれば教えていただきたいです.
 
 ## `modulefile`の作成
+
 まずはEnvironment Modulesで各packageを管理するための`modulefile`を作成します.
 
 `modulefile`を置いておくdirectoryを決めてください.
@@ -122,22 +129,24 @@ if { [info exists ::env(LDFLAGS)] } {
 
 `modulefile`はTcl言語で記述されます.
 詳細については述べませんが簡単に記載内容について説明します.
+
 - `modulefile`のfile名は任意です. ここでは`llvm`としていますがversion名など他の名前でも問題ありません. 実際に使用する際には`module load llvm`というように`modulefile`のfile名を指定するため, 命名規則を明確にしておいた方が良いでしょう.
 - `#%Module`は`modulefile`の先頭に必ず書く必要があります.
 - `conflict llvm`は同時にloadできないmoduleを指定するための設定です
-^[これは, 例えばLLVM Clangの異なる複数のversionを管理する場合に, 異なるversionのLLVM Clangを同時にloadすることができないようにするというような使い方をします.
-ここでは`modulefile`のfile名と同じ名前を`conflict`で指定しているので少し紛らわしいですが, `conflict`で指定する名前は`modulefile`のfile名とは関係なく, `conflict`で指定した名前で衝突判定が行われます.].
+  ^[これは, 例えばLLVM Clangの異なる複数のversionを管理する場合に, 異なるversionのLLVM Clangを同時にloadすることができないようにするというような使い方をします.
+  ここでは`modulefile`のfile名と同じ名前を`conflict`で指定しているので少し紛らわしいですが, `conflict`で指定する名前は`modulefile`のfile名とは関係なく, `conflict`で指定した名前で衝突判定が行われます.].
 - `set root`で`root`という`modulefile`内で用いる変数を設定しています.`HOMEBREW_PREFIX`(AArch64版Homebrewの場合のdefaultは`/opt/homebrew`)はHomebrewによってinstallされたpackageのroot directoryの場所を指定する環境変数です.これを`$::env(HOMEBREW_PREFIX)`として取得し`root`に代入しています.
 - `PATH`は`prepend-path`で設定します. `prepend-path`は現在の`PATH`変数の先頭に追加します.
 - `append-path`で現在の`PATH`の末尾に追加することもできます.
 - 環境変数は`setenv`で設定します.
 - `setenv`は`prepend-path`や`append-path`と異なり現在の環境変数を上書きします.
-そのため, 環境変数が既に設定されているか否かを判定し, 動作を変えるようにしています.
+  そのため, 環境変数が既に設定されているか否かを判定し, 動作を変えるようにしています.
 - `LDFLAGS`の設定が少し複雑なのは, LLVMの標準library`libc++`を使う設定をしているためです. Apple Clangにbundleされた`libc++`を使用して問題ない場合はcomment outしている部分の設定を代わりに使ってください.
 
 他のpackageについても同様に`modulefile`を作成することでEnvironment Modulesで管理できるようになります.
 
 ## Environment Modulesの導入
+
 Environment Modulesを導入します.
 Homebrewで入ります:
 
@@ -165,13 +174,16 @@ Modules Release 5.3.1 (2023-06-27) #出力結果
 
 これでEnvironment Modulesの導入は完了です.
 先に記載した通り,
+
 ```sh:terminal
 module load llvm
 ```
+
 でLLVM Clangが使えるようになります.
 `module` commandの詳しい使い方は[公式document](https://modules.readthedocs.io/en/latest/modulefile.html)などを参照してください.
 
 ## 参考文献
-https://modules.readthedocs.io/en/latest/modulefile.html
-https://enp1s0.github.io/blog/cuda/2018/06/06/environment-modules.html
-https://qiita.com/Ag_smith/items/f268ad27165a60aecd35
+
+<https://modules.readthedocs.io/en/latest/modulefile.html>
+<https://enp1s0.github.io/blog/etc/2018/06/06/environment-modules.html>
+<https://qiita.com/Ag_smith/items/f268ad27165a60aecd35>
