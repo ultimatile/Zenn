@@ -64,6 +64,11 @@ cd optuna-jl
 `pyproject.toml`がPythonプロジェクトに関する設定ファイルです．
 他の`README.md`，`hello.py`は必要ありませんので消しても問題ありません．
 
+:::message
+uv 0.6.0 以降では`hello.py`というファイル名は`main.py`に変更されました．
+また，`--bare`オプションが追加され，指定すると`uv init`コマンドを実行した際に`pyproject.toml`以外作成されないようにできるようになりました．
+:::
+
 続いて以下のコマンドを実行することでOptunaを依存関係に追加し，Pythonの仮想環境を用意します．
 
 ```shell-session:terminal
