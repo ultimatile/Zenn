@@ -1,1 +1,1 @@
-npx zenn preview
+npx zenn preview --open
