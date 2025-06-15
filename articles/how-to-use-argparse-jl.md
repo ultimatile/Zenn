@@ -6,6 +6,13 @@ topics: ["julia", "argparse"]
 published: false
 ---
 
+## 使用環境
+
+- OS: macOS 15.3.2
+- Apple M2, Mac mini (2023)
+- Julia 1.11.5
+- ArgParse.jl 1.2.0
+
 <https://github.com/carlobaldassi/ArgParse.jl>
 
 <https://carlobaldassi.github.io/ArgParse.jl/stable/>
