@@ -12,7 +12,7 @@ published: true
 本稿ではlazygit自体の解説は割愛します。
 [mozumasuさんの記事](<https://zenn.dev/mozumasu/articles/mozumasu-lazy-git#git%E7%AE%A1%E7%90%86%E3%82%92%E7%B0%A1%E5%8D%98%E3%81%AB-(lazygit)>)などを参照してください。
 
-lazygitには`git add`、`git commit`、`git push`のような基本的なコマンドはプリセットされたキーマップは当然用意されていますが、カスタムキーマップを自分で割り当てることができます。
+lazygitには`git add`、`git commit`、`git push`のような基本的なコマンドのキーマップは当然デフォルトで用意されていますが、カスタムキーマップを自分で割り当てることができます。
 lazygitでは「カスタムコマンド」と呼ばれていますので、以降は「カスタムコマンド」と呼ぶことにします^[厳密に言うとcustom command keybindingと呼ばれていますが、長いので省略します。]。
 
 ### カスタムコマンドの設定
