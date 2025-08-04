@@ -1,9 +1,9 @@
 ---
-title: "lazygitでカスタムキーマップに複雑な処理を仕込む"
+title: "lazygitのカスタムキーマップにシェルスクリプトで複雑な処理を仕込む"
 emoji: "💤"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["git", "lazygit", "bash"]
-published: false
+published: true
 ---
 
 ## はじめに
@@ -45,7 +45,7 @@ customCommands:
 したがって新たにキーマップを定義する際には、指定する`context`と`global`で定義済みのキーと衝突しないように注意する必要があります。
 プリセットのキーマップは[公式ドキュメント](https://github.com/jesseduffield/lazygit/blob/master/docs/keybindings/Keybindings_ja.md)で確認できます。
 
-この例は単純ですが、より複雑な処理を行いたい場合、例えば`if`で分岐したいとか、`gh`で取得した値を使用したいということをやり始めると、難読ワンライナーになっていきます。
+この例は単純ですが、より複雑な処理を行いたい場合、例えば`if`で分岐したいとか、`gh`コマンドで取得した値を使用したいということをやり始めると、難読ワンライナーになっていきます。
 YAML記法で改行して書く方法は考えられますが、いずれにせよ可読性が低くなりがちです。
 
 本記事ではこの問題を解決する方法について解説します。
@@ -61,8 +61,6 @@ YAML記法で改行して書く方法は考えられますが、いずれにせ�
 また、lazygitのwikiには[Custom Commands Compendium](https://github.com/jesseduffield/lazygit/wiki/Custom-Commands-Compendium)というページがあり、カスタムコマンドの例がいくつか紹介されています。
 
 カスタムコマンドをどう設定すれば分からない場合は[deepwiki](https://deepwiki.com/jesseduffield/lazygit)などに相談するのも良いでしょう。
-
----
 
 ## シェルスクリプトを利用したカスタムコマンドの設定方法
 
@@ -92,7 +90,8 @@ YAML記法で改行して書く方法は考えられますが、いずれにせ�
 
 基本的に実行するシェルスクリプトはlazygitの設定ファイルと同じディレクトリに置くと良いでしょう。
 もちろん別のディレクトリでも問題ありません。
-ここではdotfilesディレクトリ下にシンボリックリンクを貼っているので、シェルスクリプトそのものは本来の設定ファイルが置かれるディレクトリにありません。
+私は設定ファイルをシンボリックリンクを用いたdotfiles方式で管理しているので少々ややこしいことになっています。
+リンク先の`dotfiles`ディレクトリには`config.yml` とシェルスクリプトの両方が存在しますが、リンクを貼っているのが`config.yml` のみのため、`config.yml`を置くべきリンク元ディレクトリにシェルスクリプトはありません。
 
 次に、`{{index .PromptResponses 0}}`という部分ですが、これは`V`キーを押した際、コマンド実行前にユーザーが入力した値をコマンドで使用するためのものです。
 このように**lazygitが提供するテンプレートを引数としてシェルスクリプトに渡す**ことが第2のポイントです。
@@ -121,7 +120,7 @@ git fetch upstream "pull/${pr_id}/head:${branch}"
 git worktree add "../${dir_name}" "$branch"
 ```
 
-シェバンの`#!/bin/bash`は必要です。
+最初の行にあるシェバンの`#!/bin/bash`は必要です。
 そして以下のように実行権限を付与する必要があります。
 
 ```bash
