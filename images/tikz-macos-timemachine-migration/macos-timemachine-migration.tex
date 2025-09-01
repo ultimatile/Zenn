@@ -1,0 +1,74 @@
+% Time Machine migration diagram (standalone + TikZ)
+\documentclass[border={
+  5pt}]{standalone}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+% Fonts (macOS defaults are likely available)
+\setmainfont{Avenir Next}
+\setCJKmainfont[BoldFont=BIZUDMincho-Bold]{BIZUDPMincho-Regular}%[AutoFakeSlant=0.25]
+\setCJKsansfont[BoldFont=BIZUDGothic-Bold]{BIZUDPGothic-Regular}%[AutoFakeSlant=0.25]
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shadows.blur}
+% Material-like color palette
+% Darker fills for better contrast
+\definecolor{mdIndigo50}{HTML}{9FA8DA} % Indigo 200
+\definecolor{mdGreen50}{HTML}{A5D6A7}  % Green 200 (unused, reserved)
+\definecolor{mdAmber50}{HTML}{FFE082}  % Amber 200
+\definecolor{mdGrey100}{HTML}{E0E0E0}  % Grey 300
+\definecolor{mdBlueGrey500}{HTML}{607D8B}
+\definecolor{mdText}{HTML}{263238}
+
+% Layers for proper z-order
+\pgfdeclarelayer{background}
+\pgfdeclarelayer{labels}
+\pgfsetlayers{background,main,labels}
+
+\begin{document}
+\begin{tikzpicture}[font=\sffamily, node distance=1cm,scale=1]
+  % Styles
+  \tikzset{
+    disk/.style={draw=none, rounded corners=12pt, fill=mdGrey100, minimum width=7.0cm, minimum height=4.5cm, inner sep=8pt,
+                 blur shadow={shadow xshift=0pt, shadow yshift=-3pt, shadow blur steps=16, shadow opacity=0.18}},
+    gpt/.style={draw=none, rounded corners=8pt, fill=mdGrey100, minimum width=6.8cm, minimum height=3.6cm,
+                blur shadow={shadow xshift=0pt, shadow yshift=-2pt, shadow blur steps=12, shadow opacity=0.15},
+                font=\large},
+    container/.style={draw=none, rounded corners=8pt, fill=mdIndigo50, minimum width=5.8cm, minimum height=3.4cm,
+                      blur shadow={shadow xshift=0pt, shadow yshift=-2pt, shadow blur steps=10, shadow opacity=0.12}},
+    volume/.style={draw=none, rounded corners=6pt, fill=mdAmber50, minimum width=5.0cm, minimum height=1.8cm,
+                   blur shadow={shadow xshift=0pt, shadow yshift=-1.5pt, shadow blur steps=8, shadow opacity=0.12}},
+    labeltop/.style={font=\small, anchor=south, text=mdText},
+    edgelabel/.style={midway, above, fill=white, inner sep=2pt, text=mdText, rounded corners=2pt, font=\large},
+    tierlabel/.style={font=\large, align=center, inner sep=2pt, text=mdText, anchor=north}
+  }
+
+  % Source disk (/dev/disk2)
+  \node[disk] (src) at (-4.5,0) {};
+  % Horizontally centered label near the top (keep vertical height)
+
+  % Destination disk (/dev/disk4) = GPT layer
+  \node[disk] (dst) at (4.5,0) {};
+  % Place APFS container directly under disk top (disk = GPT)
+  \node[container, anchor=north] (dstapfs) at ($(dst.north)+(0,-0.85)$) {};
+  \node[volume, anchor=north] (dstvol) at ($(dstapfs.north)+(0,-1.3)$) {};
+
+  % Source disk (/dev/disk2) = GPT layer
+  % Place APFS container directly under disk top (disk = GPT)
+  \node[container, anchor=north] (srcapfs) at ($(src.north)+(0,-0.85)$) {};
+  \node[volume, anchor=north] (srcvol) at ($(srcapfs.north)+(0,-1.3)$) {};
+
+  % Labels on top layer to avoid being hidden
+  \begin{pgfonlayer}{labels}
+    \node[tierlabel] at ($(src.north)+(0,0.7)$) {移行元};
+    \node[tierlabel] at ($(dst.north)+(0,0.7)$) {移行先};
+    \node[tierlabel] at ($(src.north)+(0,-0.18)$) {物理ディスク /dev/disk2};
+    \node[tierlabel] at ($(dst.north)+(0,-0.18)$) {物理ディスク /dev/disk4};
+    \node[tierlabel] at ($(srcapfs.north)+(0,-0.15)$) {APFSコンテナ\\ /dev/disk3};
+    \node[tierlabel] at ($(srcvol.north)+(0,-0.12)$) {APFSボリューム\\ (Time Machine)\\ /dev/disk3s1};
+  \node[tierlabel] at ($(dstapfs.north)+(0,-0.15)$) {APFSコンテナ（\textcolor{yellow}{リサイズ対象}）\\ /dev/disk5};
+    \node[tierlabel] at ($(dstvol.north)+(0,-0.12)$) {APFSボリューム \\ (Time Machine)\\ /dev/disk5s1};
+  \end{pgfonlayer}
+  % dd arrow with opaque label
+  \draw[-{Latex[length=5mm]}, ultra thick, mdBlueGrey500, line cap=round]
+    (src.east) -- node[edgelabel]{dd} (dst.west);
+\end{tikzpicture}
+\end{document}
