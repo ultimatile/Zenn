@@ -9,6 +9,7 @@ published: true
 M1 MacなどのARM MacでRosetta 2を利用してx86-64のRust環境を用意する方法を紹介します．
 
 ## やること
+
 1. Rosetta 2の導入
 2. Rosetta 2のterminalの起動
 3. x86-64用のHomebrewのinstall
@@ -18,10 +19,12 @@ M1 MacなどのARM MacでRosetta 2を利用してx86-64のRust環境を用意す
 既にaarch64のHomebrewをinstallしている方もx86-64のHomebrewをinstallすることに注意してください．
 
 ## 使用環境
+
 Apple M2 Mac mini (2023)
 macOS 14.3.1 (Sonoma)
 
 ## Rosetta 2のinstall
+
 まずは以下のcommandでRosetta 2をinstallします．
 
 ```sh:Terminal
@@ -29,21 +32,26 @@ softwareupdate --install-rosetta
 ```
 
 次にCommand Line Tools for Xcodeをinstallします．
+
 ```sh:Terminal
 xcode-select --install
 ```
+
 これはHomebrewのinstallに必要です.
 
 :::message
 RustのinstallにHomebrewは必須ではありません．
+
 ```sh:Terminal
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
+
 を実行すると直接Rustupをinstallすることができます．
-https://www.rust-lang.org/tools/install
+<https://www.rust-lang.org/tools/install>
 :::
 
 ## Rosetta 2のterminalの起動
+
 次に以下のcommandでRosetta 2のterminalを開きます．
 
 ```sh:Terminal
@@ -51,13 +59,17 @@ arch -x86_64 zsh
 ```
 
 ## x86-64 Homebrewのinstall
+
 x86-64のHomebrewをinstallします．
+
 ```sh:Terminal
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 ## x86-64 Rustupのinstall
+
 `rustup-init`をinstallします．
+
 ```sh:Terminal
 brew install rustup-init
 ```
@@ -128,7 +140,7 @@ Current installation options:
 ```
 
 表示内容から，いくつか設定が正しいか確認することがあります．
-まず最初の2つのPATHが`RUSTUP_HOME`/`RUSTUP_HOME`の設定です．
+まず最初の2つのPATHが`RUSTUP_HOME`/`CARGO_HOME`の設定です．
 先ほど行ったようにx86-64用のdirectoryに設定されているか確認してください．
 
 次に`default host triple`が`x86_64-apple-darwin`になっているか確認してください．
@@ -216,6 +228,7 @@ Rust is installed now. Great!
 ```
 
 ## 環境変数の設定
+
 続いて，環境変数等の設定を行います．
 aarch64 terminalとRosetta terminalで呼び出すHomebrewとRustの環境変数を切り替えるよう設定します．
 
@@ -234,11 +247,12 @@ fi
 ```
 
 以下何をやっているのか説明します．興味ない人は読み飛ばしてください．
+
 - `$(uname -m)`で現在のarchitectureを取得しています．`if`でaarch64とx86-64を判別して処理を変更しています．
 - `eval "$($HOMEBREW_REPOSITORY/bin/brew shellenv)"`でHomebrewの環境変数を設定しています．
   - `HOMEBREW_REPOSITORY`はdefaultで`/opt/homebrew`(aarch64)と`/usr/local`(x86-64)です．
 - `. "$CARGO_HOME/env"`でCargoの環境変数を設定しています．
-    - `CARGO_HOME`は`$HOME/.cargo`(aarch64)と`$HOME/x86_64/.cargo`(x86-64)です．
+  - `CARGO_HOME`は`$HOME/.cargo`(aarch64)と`$HOME/x86_64/.cargo`(x86-64)です．
 - x86-64のRust環境を使う場合は`RUSTUP_HOME`を`$HOME/x86_64/.rustup`に設定しています．
   - 設定しないとaarch64の`$HOME/.rustup`を参照してしまいます．
 - `export PS1="(x86_64) $PS1"`はRosetta terminalを起動しているときに，terminalの左側に`(x86_64)`と表示されるようにしています．必須ではありません．
@@ -248,6 +262,7 @@ fi
 これでRosetta terminalを実行してから，`cargo`などを実行することでx86-64のRust環境を利用することができます．
 
 ## おまけ：Rosetta terminalの起動用のalias設定
+
 おまけですが，`$HOME/.zshrc`に以下の設定を追加すると`zx64`でRosetta terminalを呼び出すことができます．
 `zarm`はRosetta terminalから通常のterminalに戻るために使います．
 
@@ -257,3 +272,4 @@ alias zarm="arch -arm64 zsh"
 # Rosetta terminal
 alias zx64="arch -x86_64 zsh" 
 ```
+
