@@ -1,8 +1,8 @@
 ---
 title: "rsyncでチェックサムによる転送ファイル差分計算時に特定サイズのファイルで存在しない差分を誤検知する問題"
-emoji: "🦀"
+emoji: "🐛"
 type: "tech" # tech: 技術記事 / idea: アイデア
-topics: [🐛]
+topics: [cli, mac, linux, rsync]
 published: false
 ---
 
