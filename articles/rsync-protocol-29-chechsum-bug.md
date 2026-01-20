@@ -84,9 +84,9 @@ openrsyncでは指定しなければプロトコル29が使用されます。
 
 ## 検証環境
 
-| 環境 | バージョン |
-|-----|-----------|
-| ローカル (macOSプリインストール) | openrsync protocol version 29 |
-| ローカル (Homebrew) | GPL版rsync 3.4.1 protocol version 32 |
-| リモート (発生) | GPL版rsync 3.2.5 protocol version 31 |
-| リモート (発生せず) | GPL版rsync 3.1.3 protocol version 31 |
+| 環境 | OS | rsyncバージョン |
+|-----|-----|-----------|
+| ローカル (macOSプリインストール) | macOS 15.7.2 | openrsync protocol version 29 |
+| ローカル (Homebrew) | 同上 | GPL版rsync 3.4.1 protocol version 32 |
+| リモート (発生) | Rocky Linux 9.7 | GPL版rsync 3.2.5 protocol version 31 |
+| リモート (発生せず) | RHEL 8.10 | GPL版rsync 3.1.3 protocol version 31 |
