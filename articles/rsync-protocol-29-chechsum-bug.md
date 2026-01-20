@@ -33,6 +33,8 @@ rsync version 2.6.9 compatible
 - サイズが64の倍数バイトのファイル
 - リモート側がrsync 3.2.5（3.1.3では発生しない）
 
+正確な条件が不明なため、他の条件も影響している可能性があります。
+
 ## 再現手順
 
 `your-remote-host`を適切なリモートホスト名に置き換えてください。
@@ -45,30 +47,8 @@ head -c 64 /dev/urandom | base64 | head -c 64 > /tmp/test64.bin
 rsync -avz /tmp/test64.bin your-remote-host:~/test64.bin
 
 # チェックサムで差分確認（バグが発生する）
-rsync -avz --checksum --protocol=29 --dry-run --itemize-changes \
-  /tmp/test64.bin your-remote-host:~/test64.bin
+rsync -avz --checksum --protocol=29 --dry-run --itemize-changes  /tmp/test64.bin your-remote-host:~/test64.bin
 ```
-
-出力例：
-
-```shell-session
-building file list ... done
-<fc......... test64.bin
-
-sent 92 bytes  received 30 bytes  81.33 bytes/sec
-total size is 64  speedup is 0.52 (DRY RUN)
-```
-
-`<fc`はチェックサム不一致を意味します。
-差分がなければこの行は表示されません。
-
-## 回避法
-
-- プロトコル30以降を使用する
-- GPL版rsyncで`--checksum-choice=md4`または`md5`を指定
-  - openrsyncでは`--checksum-choice`オプションがないため使用不可
-- タイムスタンプによる差分計算を使用（デフォルト）
-- リモートでGPL版rsync 3.2以外を使用する（要検証）
 
 ### オプション説明
 
@@ -81,6 +61,27 @@ total size is 64  speedup is 0.52 (DRY RUN)
 
 なお、`--protocol=29`はGPL版rsyncでopenrsyncとプロトコルを合わせるために使用しています。
 openrsyncでは指定しなければプロトコル29が使用されます。
+
+### 出力例
+
+```shell-session
+building file list ... done
+<fc......... test64.bin
+
+sent 92 bytes  received 30 bytes  81.33 bytes/sec
+total size is 64  speedup is 0.52 (DRY RUN)
+```
+
+`<fc`はチェックサム不一致を意味しており、同一ファイルを比較しているにもかかわらず、違うファイルとして認識されていることが分かります。
+差分がなければこの行は表示されません。
+
+## 回避法
+
+- プロトコル30以降を使用する
+- GPL版rsyncで`--checksum-choice=md4`または`md5`を指定
+  - openrsyncでは`--checksum-choice`オプションがないため使用不可
+- タイムスタンプによる差分計算を使用（デフォルト）
+- リモートでGPL版rsync 3.2以外を使用する（要検証）
 
 ## 検証環境
 
