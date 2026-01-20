@@ -27,19 +27,11 @@ rsync version 2.6.9 compatible
 
 ## 発生条件
 
-- ローカル・リモート間の転送（ローカル間では発生しない）
+- ローカル→リモート間の転送（ローカル間では発生しない）
 - プロトコル29を使用
 - `--checksum`オプションで差分計算
-- ファイルサイズが64の倍数バイト
+- サイズが64の倍数バイトのファイル
 - リモート側がrsync 3.2.5（3.1.3では発生しない）
-
-## 回避法
-
-- プロトコル30以降を使用する
-- GPL版rsyncで`--checksum-choice=md4`または`md5`を指定
-  - openrsyncでは`--checksum-choice`オプションがないため使用不可
-- タイムスタンプによる差分計算を使用（デフォルト）
-- リモートでGPL版rsync 3.2以外を使用する（要検証）
 
 ## 再現手順
 
@@ -70,6 +62,14 @@ total size is 64  speedup is 0.52 (DRY RUN)
 `<fc`はチェックサム不一致を意味します。
 差分がなければこの行は表示されません。
 
+## 回避法
+
+- プロトコル30以降を使用する
+- GPL版rsyncで`--checksum-choice=md4`または`md5`を指定
+  - openrsyncでは`--checksum-choice`オプションがないため使用不可
+- タイムスタンプによる差分計算を使用（デフォルト）
+- リモートでGPL版rsync 3.2以外を使用する（要検証）
+
 ### オプション説明
 
 | オプション | 説明 |
@@ -83,6 +83,9 @@ total size is 64  speedup is 0.52 (DRY RUN)
 openrsyncでは指定しなければプロトコル29が使用されます。
 
 ## 検証環境
+
+openrsync固有の問題ではないことを確認するため、HomebrewでGPL版rsyncをインストールして検証しました。
+Homebrew版をインストールすると`rsync`コマンドがHomebrew版に置き換わるため、macOSプリインストール版は`/usr/bin/rsync`、Homebrew版は`/opt/homebrew/bin/rsync`とフルパスで指定して使い分ける必要があります。
 
 | 環境 | OS | rsyncバージョン |
 |-----|-----|-----------|
