@@ -17,7 +17,7 @@ rsyncは転送対象のファイルを特定するために差分をチェック
 このバグはプロトコル29かつチェックサムによる差分計算を使用している場合に発生します。
 デフォルトではタイムスタンプで差分計算するため、多くの場合は影響を受けません。
 
-macOS 15.7 (Sequoia) にプリインストールされているrsync (openrsync)はプロトコル29を使用しています。
+macOS 15.7 (Sequoia) にプリインストールされているrsync ([openrsync](https://github.com/kristapsdz/openrsync))はプロトコル29を使用しています。
 
 ```shell-session
 $ rsync -V
@@ -85,7 +85,7 @@ total size is 64  speedup is 0.52 (DRY RUN)
 
 ## 検証環境
 
-openrsync固有の問題ではないことを確認するため、HomebrewでGPL版rsyncをインストールして検証しました。
+openrsync固有の問題ではないことを確認するため、Homebrewで[GPL版rsync](https://rsync.samba.org)をインストールして検証しました。
 Homebrew版をインストールすると`rsync`コマンドがHomebrew版に置き換わるため、macOSプリインストール版は`/usr/bin/rsync`、Homebrew版は`/opt/homebrew/bin/rsync`とフルパスで指定して使い分ける必要があります。
 
 | 環境 | OS | rsyncバージョン |
