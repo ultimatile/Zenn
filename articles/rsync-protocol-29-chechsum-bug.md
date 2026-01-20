@@ -35,6 +35,7 @@ rsync version 2.6.9 compatible
 
 - プロトコル30以降を使用する
 - GNU rsyncで`--checksum-choice=md4`または`md5`を指定
+  - openrsyncでは`--checksum-choice`オプションがないため使用不可
 - タイムスタンプによる差分計算を使用（デフォルト）
 - リモートでGNU rsync 3.2以外を使用する（要検証）
 
@@ -76,11 +77,14 @@ total size is 64  speedup is 0.52 (DRY RUN)
 | `--dry-run` | 実際には転送しない |
 | `--itemize-changes` | 変更内容を詳細表示 |
 
+なお、`--protocol=29`はGNU rsyncでopenrsyncとプロトコルを合わせるために使用しています。
+openrsyncでは指定しなければプロトコル29が使用されます。
+
 ## 検証環境
 
 | 環境 | バージョン |
 |-----|-----------|
-| ローカル (macOS) | openrsync protocol version 29 |
+| ローカル (macOSプリインストール) | openrsync protocol version 29 |
 | ローカル (Homebrew) | rsync 3.4.1 protocol version 32 |
 | リモート (発生) | rsync 3.2.5 protocol version 31 |
 | リモート (発生せず) | rsync 3.1.3 protocol version 31 |
