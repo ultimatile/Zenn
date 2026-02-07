@@ -1,5 +1,5 @@
 ---
-title: "Rustのcoherence/orphanルールと回避パターン"
+title: "Rustのcoherenceルールと回避パターン"
 emoji: "🦀"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [rust]
@@ -10,7 +10,7 @@ published: false
 
 Rustでジェネリクスを使ったライブラリを書いていると、「同じ型に対して複数の`impl`が衝突する」というコンパイルエラーに遭遇することがあります。これはRustのcoherence（一貫性）ルールによるもので、型安全性を保証するための重要な制約です。
 
-この記事では、実際に私が遭遇した問題を例に、coherence/orphanルールの仕組みと、それを回避するための設計パターンを解説します。
+この記事では、実際に私が遭遇した問題を例に、coherenceルールの仕組みと、それを回避するための設計パターンを解説します。
 
 ## 実際に遭遇した問題
 
@@ -65,28 +65,9 @@ Rustのcoherenceルールは「ある型に対するtraitの実装は、プロ�
 
 上記の例では、将来的に`Complex<T>`が`Float`を実装する可能性を排除できないため、コンパイラは2つの`impl`が重複する可能性があると判断します。実際には`num_complex::Complex`は`Float`を実装していませんが、コンパイラは保守的に判断します。
 
-## orphanルールとは
-
-orphanルールはcoherenceを保証するための具体的な制約で、「traitの実装は、そのtraitか実装対象の型のどちらかが自クレートで定義されている場合のみ許可される」というものです。
-
-```rust
-// NG: 両方とも外部クレートの型/trait
-impl std::fmt::Display for Vec<i32> { /* ... */ }
-
-// OK: 自クレートの型に外部traitを実装
-struct MyType;
-impl std::fmt::Display for MyType { /* ... */ }
-
-// OK: 外部型に自クレートのtraitを実装
-trait MyTrait {}
-impl MyTrait for Vec<i32> {}
-```
-
-この制約により、異なるクレートが同じ型に対して同じtraitを実装することを防ぎ、coherenceを保証します。
-
 ## 回避パターン
 
-coherence/orphanルールを回避するための主要なパターンを紹介します。
+coherenceルールを回避するための主要なパターンを紹介します。
 
 ### 1. Newtype パターン
 
@@ -94,16 +75,21 @@ coherence/orphanルールを回避するための主要なパターンを紹介�
 
 ```rust
 struct Real<T>(T);
-struct Comp<T>(Complex<T>);
+struct Cplx<T>(Complex<T>);
 
 impl<T: Float> Real<T> {
     fn norm(&self) -> T { /* ... */ }
 }
 
-impl<T: Float> Comp<T> {
+impl<T: Float> Cplx<T> {
     fn norm(&self) -> T { /* ... */ }
 }
 ```
+
+なぜ回避できるか:
+- `Real<T>`と`Cplx<T>`は完全に別の型として定義されている
+- コンパイラにとって両者のimplは独立しており、重複の可能性がない
+- 元の問題では`Tensor<T>`と`Tensor<Complex<T>>`が「将来`Complex<U>: Float`になったら重複する」という懸念があったが、Newtypeでは型自体が異なるためこの問題は発生しない
 
 メリット:
 - シンプルで理解しやすい
@@ -130,6 +116,16 @@ impl<T: Float> TensorExt<T> for Tensor<Complex<T>> {
     fn norm(&self) -> T { /* ... */ }
 }
 ```
+
+なぜ回避できるか:
+- `TensorExt<T>`が型パラメータを持つことがポイント
+- `Tensor<f64>`には`TensorExt<f64>`、`Tensor<Complex<f64>>`にも`TensorExt<f64>`が実装される
+- 仮に将来`Complex<U>: Float`が追加されても:
+  - 1つ目のimplは`TensorExt<Complex<U>> for Tensor<Complex<U>>`を提供
+  - 2つ目のimplは`TensorExt<U> for Tensor<Complex<U>>`を提供
+  - これらは**異なるtrait**（`TensorExt<Complex<U>>`と`TensorExt<U>`）なので衝突しない
+
+注意: 型パラメータなしの`trait TensorExt { fn norm(&self) -> T; }`で定義すると、元の問題と同様にcoherenceエラー（E0119）になる。
 
 メリット:
 - 既存の型をそのまま使える
@@ -171,6 +167,12 @@ impl Scalar for Complex<f32> {
 }
 // f64, Complex<f64>も同様に実装
 ```
+
+なぜ回避できるか:
+- ジェネリックな`impl<T: Float>`ではなく、具体的な型（`f32`, `f64`, `Complex<f32>`, `Complex<f64>`）に対して個別にimplを書く
+- 各implは完全に独立した型に対するものなので、重複の可能性がない
+- 「将来`Complex<U>: Float`が追加されたら...」という問題は、そもそも`Float`境界を使わないため発生しない
+- Sealedモジュールにより、外部クレートが新しい型に`Scalar`を実装することも防げる
 
 メリット:
 - `impl`が1本に集約され、coherence問題を根本回避
@@ -217,6 +219,11 @@ impl ScalarExt for f32 { /* ... */ }
 impl ScalarExt for Complex<f32> { /* ... */ }
 ```
 
+なぜ回避できるか:
+- coherence回避の仕組みはSealed traitパターンと同じ。具体型に個別implしているため重複の可能性がない
+- 「Extension」部分はcoherence回避には寄与せず、「traitとして公開APIにする」という設計上の役割
+- `: sealed::Sealed`により外部クレートからの実装を防ぎつつ、trait自体は公開できる
+
 標準ライブラリの`std::str::pattern::Pattern` traitがこのパターンを採用しています。`str::contains()`などに渡せる型を制限しつつ、traitとしてのAPIは公開しています。
 
 ### Newtype + Extension（特定のユースケース向け）
@@ -225,7 +232,7 @@ impl ScalarExt for Complex<f32> { /* ... */ }
 
 ```rust
 struct Real<T>(T);
-struct Comp<T>(Complex<T>);
+struct Cplx<T>(Complex<T>);
 
 trait NormExt {
     type Output;
@@ -233,8 +240,13 @@ trait NormExt {
 }
 
 impl<T: Float> NormExt for Real<T> { /* ... */ }
-impl<T: Float> NormExt for Comp<T> { /* ... */ }
+impl<T: Float> NormExt for Cplx<T> { /* ... */ }
 ```
+
+なぜ回避できるか:
+- coherence回避の仕組みはNewtypeパターンと同じ。`Real<T>`と`Cplx<T>`が完全に別の型なので重複の可能性がない
+- 「Extension」部分はcoherence回避には寄与せず、共通インターフェースを提供する設計上の役割
+- `NormExt`は型パラメータなしだが、impl対象が異なる型なので問題ない
 
 型レベルで実数/複素数を区別しつつ、共通のtraitで操作したい場合に有用です。
 
@@ -297,7 +309,7 @@ impl<T: Float> Norm for Tensor<T> {
 
 ## まとめ
 
-- Rustのcoherence/orphanルールは型安全性のための重要な制約
+- Rustのcoherenceルールは型安全性のための重要な制約
 - 回避パターンとしてNewtype、Extension trait、Sealed traitがある
 - サポートする型が限定的でAPIの自然さを重視するならSealed traitが有効
 - specializationは将来的な解決策だが、現時点ではnightly限定
