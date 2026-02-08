@@ -65,16 +65,12 @@ $$
 であることがわかるので，$x=(z+z^*)/2, y=(z-z^*)/(2\mathrm{i})$と合わせて式(2)を書き直すと
 
 $$
-\mathrm{d}f =\sum_i \frac{\partial f}{\partial x_i} \mathrm{d}x_i + \sum_i \frac{\partial f}{\partial y_i} \mathrm{d}y_i
-$$
-
-$$
-= \sum_i \left(\left(\frac{\partial f}{\partial z_i} + \frac{\partial f}{\partial z_i^*}\right)\frac{\mathrm{d}z_i+\mathrm{d}z_i^*}{2}
-+\mathrm{i}\left(\frac{\partial f}{\partial z_i} - \frac{\partial f}{\partial z_i^*}\right)\frac{\mathrm{d}z_i-\mathrm{d}z_i^*}{2\mathrm{i}}\right)
-$$
-
-$$
-=\sum_i \left(\frac{\partial f}{\partial z_i}\mathrm{d}z_i +\frac{\partial f}{\partial z_i^*}\mathrm{d}z_i^*\right)．
+\begin{aligned}
+\mathrm{d}f&=\sum_i \frac{\partial f}{\partial x_i} \mathrm{d}x_i + \sum_i \frac{\partial f}{\partial y_i} \mathrm{d}y_i\\
+&=\sum_i \left(\left(\frac{\partial f}{\partial z_i} + \frac{\partial f}{\partial z_i^*}\right)\frac{\mathrm{d}z_i+\mathrm{d}z_i^*}{2}
++\mathrm{i}\left(\frac{\partial f}{\partial z_i} - \frac{\partial f}{\partial z_i^*}\right)\frac{\mathrm{d}z_i-\mathrm{d}z_i^*}{2\mathrm{i}}\right)\\
+&=\sum_i \left(\frac{\partial f}{\partial z_i}\mathrm{d}z_i +\frac{\partial f}{\partial z_i^*}\mathrm{d}z_i^*\right)．
+\end{aligned}
 $$
 
 ここで，$f$が実値函数であることより$\frac{\partial f}{\partial x_i}$, $\frac{\partial f}{\partial y_i}$も実数であることが従うので，
@@ -82,14 +78,14 @@ $$
 $$
 \left(\frac{\partial f}{\partial z_i}\right)^* =\frac{1}{2}\left(\left(\frac{\partial f}{\partial x_i}\right)^*-\mathrm{i}\left(\frac{\partial f}{\partial y_i}\right)^*\right)
 =\frac{1}{2}\left(\frac{\partial f}{\partial x_i}-\mathrm{i} \frac{\partial f}{\partial y_i}\right)
-= \frac{\partial f}{\partial z_i^*}
+=\frac{\partial f}{\partial z_i^*}
 $$
 
 が成り立ち，
 
 $$
-\mathrm{d}f = \sum_i \left(\frac{\partial f}{\partial z_i}\mathrm{d}z_i +\left(\frac{\partial f}{\partial z_i}\right)^*\mathrm{d}z_i^*\right)
-= \sum_i \left(\frac{\partial f}{\partial z_i}\mathrm{d}z_i +\left(\frac{\partial f}{\partial z_i}\mathrm{d}z_i\right)^*\right)
+\mathrm{d}f =\sum_i \left(\frac{\partial f}{\partial z_i}\mathrm{d}z_i +\left(\frac{\partial f}{\partial z_i}\right)^*\mathrm{d}z_i^*\right)
+=\sum_i \left(\frac{\partial f}{\partial z_i}\mathrm{d}z_i +\left(\frac{\partial f}{\partial z_i}\mathrm{d}z_i\right)^*\right)
 =\sum_i 2\mathrm{Re}\left(\frac{\partial f}{\partial z_i}\mathrm{d}z_i\right)
 $$
 
@@ -131,7 +127,7 @@ $$
 となる．よって
 
 $$
-\frac{\partial E}{\partial c^*_k} =\frac{\langle\psi_k|\mathcal{H}|\psi\rangle}{\langle\psi|\psi\rangle}
+\frac{\partial E}{\partial c^*_k}=\frac{\langle\psi_k|\mathcal{H}|\psi\rangle}{\langle\psi|\psi\rangle}
 -\frac{E \langle\psi_k|\psi\rangle}{\langle\psi|\psi\rangle}
 =\frac{\langle\psi_k|(\mathcal{H}-E)|\psi\rangle}{\langle\psi|\psi\rangle}
 $$
@@ -170,7 +166,8 @@ $$
 となる．これは通常の虚時間Schrödinger方程式$|\dot{\psi}\rangle = -\mathcal{H}|\psi\rangle$に，エネルギー期待値$E(t)$によるシフトが加わった形になっている．
 
 :::details 補足：ノルム保存について
-$E$によるシフトにより，ノルムの2乗$\langle\psi|\psi\rangle$が時間発展で保存される．実際，$\mathcal{H}$のHermite性と$E$の実数性から
+$E$によるシフトにより，ノルムの2乗$\langle\psi|\psi\rangle$が時間発展で保存される．
+実際，$\mathcal{H}$のHermite性と$E$の実数性から
 
 $$
 \frac{\mathrm{d}}{\mathrm{d}t}\langle\psi|\psi\rangle = \langle\dot{\psi}|\psi\rangle + \langle\psi|\dot{\psi}\rangle = -2\langle\psi|(\mathcal{H}-E)|\psi\rangle．
