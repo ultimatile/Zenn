@@ -1,4 +1,5 @@
 #!/bin/zsh
+npm update zenn-cli@latest
 if [ $# -eq 0 ]; then
     # Default behavior when no arguments are provided
     npx zenn new:article --slug myarticle-slug --title mytitle --type tech --emoji 🦀
