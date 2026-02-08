@@ -138,17 +138,17 @@ $$
 
 となる．
 
-$c_k^*$勾配ベクトル$|\nabla_{\boldsymbol{z}^*}E\rangle$は
+$\boldsymbol{c}^*$勾配ベクトル$|\nabla_{\boldsymbol{c}^*}E\rangle$は
 
 $$
-|\nabla_{\boldsymbol{z}^*}E\rangle =\sum_k \frac{\partial E}{\partial c^*_k} |\psi_k\rangle
+|\nabla_{\boldsymbol{c}^*}E\rangle =\sum_k \frac{\partial E}{\partial c^*_k} |\psi_k\rangle
 = \sum_k \frac{ |\psi_k\rangle\langle\psi_k|(\mathcal{H}-E)|\psi\rangle}{\langle\psi|\psi\rangle}．
 $$
 
 正規直交基底の完全性$\sum_k |\psi_k\rangle\langle\psi_k|=1$より，
 
 $$
-|\nabla_{\boldsymbol{z}^*}E\rangle=\frac{(\mathcal{H}-E)|\psi\rangle}{\langle\psi|\psi\rangle}．
+|\nabla_{\boldsymbol{c}^*}E\rangle=\frac{(\mathcal{H}-E)|\psi\rangle}{\langle\psi|\psi\rangle}．
 $$
 
 ## まとめ：虚時間発展と最急降下法の対応
