@@ -3,7 +3,7 @@ title: "Rustのinherent impl衝突（E0592）の原因と回避法"
 emoji: "🦀"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [rust]
-published: false
+published: true
 ---
 
 ## はじめに
@@ -77,7 +77,7 @@ error[E0592]: duplicate definitions with name `norm`
 
 2つのinherent implの対象型が重なりうる場合、コンパイラはE0592を出します。
 上記の例では、将来的に`Complex<T>`が`Float`を実装する可能性を排除できないため、`Tensor<T>`（`T = Complex<U>`のとき）と`Tensor<Complex<T>>`が同じ型を指しうるとコンパイラは判断します。
-実際には`num_complex::Complex`は`Float`を実装していませんし、`Float`は全順序（`Ord`）を要求するため複素数への実装は不自然ですが、コンパイラは保守的に判断します。
+実際には`num_complex::Complex`は`Float`を実装していませんし、`Float`は`PartialOrd`を要求するため順序を持たない複素数への実装は不自然ですが、コンパイラは保守的に判断します。
 
 :::details 補足: コヒーレンスルールとの関係
 E0592はinherent implの重複チェックであり、Rust Referenceで定義される[コヒーレンスルール](https://doc.rust-lang.org/reference/items/implementations.html#trait-implementation-coherence)（trait implに対する孤児ルール＋重複チェック）とは厳密には別のルールです。
@@ -198,6 +198,6 @@ impl<T: Float> TensorExt<T> for Tensor<Complex<T>> {
 
 注意点:
 
-- トレイトに型引数がないと（`trait TensorExt { fn norm(&self) -> ... }`）、`TensorExt for Tensor<T>`と`TensorExt for Tensor<Complex<T>>`が同一トレイトの重複実装となり、[コヒーレンスルール](https://doc.rust-lang.org/reference/items/implementations.html#trait-implementation-coherence)に抵触します（E0119）。型引数`R`を持たせることで`TensorExt<T>`と`TensorExt<Complex<T>>`が別のトレイトとして扱われ、衝突を回避できます
+- トレイトに型引数がないと（`trait TensorExt { fn norm(&self) -> ... }`）、`TensorExt for Tensor<T>`と`TensorExt for Tensor<Complex<T>>`が同一トレイトの重複実装となり、[コヒーレンスルール](https://doc.rust-lang.org/reference/items/implementations.html#trait-implementation-coherence)に抵触する（E0119）。型引数`R`を持たせることで`TensorExt<T>`と`TensorExt<Complex<T>>`が別のトレイトとして扱われ、衝突を回避できる
 - ニュータイプと同様、メソッド追加のたびに型の数だけimplを書く必要がある
 - 利用側で毎回`use`が必要になる
