@@ -22,7 +22,8 @@ Rustの標準ライブラリには複素数型がないため、[`num_complex`](
 ### 問題: implの衝突
 
 実数と複素数でノルム計算の実装が異なるため、別々の`impl`を書こうとしました。
-実数のノルムは$\sqrt{\sum_i x_i^2}$、複素数のノルムは$\sqrt{\sum_i |z_i|^2}$で、`Complex::norm_sqr()`は絶対値の二乗$|z|^2 = \left(\mathrm{Re}\,z\right)^2 + \left(\mathrm{Im}\,z\right)^2$を直接計算します:
+実数のノルムは$\sqrt{\sum_i x_i^2}$を直接計算します。
+複素数のノルムは$\sqrt{\sum_i |z_i|^2}$で、絶対値の二乗$|z|^2 = \left(\mathrm{Re}\,z\right)^2 + \left(\mathrm{Im}\,z\right)^2$を直接計算する`Complex::norm_sqr()`を使います。
 
 ```rust
 use num_complex::Complex;
