@@ -167,7 +167,7 @@ impl<T: Scalar> Tensor<T> {
 
 ### 拡張トレイト
 
-拡張トレイトでも回避できますが、定義の仕方が重要です。
+拡張トレイトは本来、既存の型に新しいメソッドを追加するためのパターンですが、E0592の回避にも使えなくはありません。ただし、定義の仕方には注意が必要です。
 
 ```rust
 use num_complex::Complex;
@@ -199,4 +199,5 @@ impl<T: Float> TensorExt<T> for Tensor<Complex<T>> {
 注意点:
 
 - トレイトに型引数がないと（`trait TensorExt { fn norm(&self) -> ... }`）、`TensorExt for Tensor<T>`と`TensorExt for Tensor<Complex<T>>`が同一トレイトの重複実装となり、[コヒーレンスルール](https://doc.rust-lang.org/reference/items/implementations.html#trait-implementation-coherence)に抵触します（E0119）。型引数`R`を持たせることで`TensorExt<T>`と`TensorExt<Complex<T>>`が別のトレイトとして扱われ、衝突を回避できます
+- ニュータイプと同様、メソッド追加のたびに型の数だけimplを書く必要がある
 - 利用側で毎回`use`が必要になる
