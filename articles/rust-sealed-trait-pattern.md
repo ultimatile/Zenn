@@ -1,5 +1,5 @@
 ---
-title: "Rustのsealedトレイトパターン：外部実装を禁止する"
+title: "Rustの外部実装を禁止するsealedトレイトパターン"
 emoji: "🦀"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [rust]
