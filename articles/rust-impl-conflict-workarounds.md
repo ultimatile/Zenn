@@ -1,5 +1,5 @@
 ---
-title: "Rustのコヒーレンスルールとimpl衝突の回避法"
+title: "Rustのinherent impl衝突（E0592）の原因と回避法"
 emoji: "🦀"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [rust]
@@ -8,8 +8,8 @@ published: false
 
 ## はじめに
 
-Rustでジェネリクスを使ったライブラリを書いていると、「同じ型に対して複数の`impl`が衝突する」というコンパイルエラーに遭遇することがあります。
-これはRustのコヒーレンス(coherence)ルールによるものです。
+Rustでジェネリクスを使ったライブラリを書いていると、「同じ型に対して複数の`impl`が衝突する」というコンパイルエラー（E0592）に遭遇することがあります。
+これはinherent impl（型に直接定義するメソッド）の重複チェックによるものです。
 
 ## 実際に遭遇した問題
 
@@ -72,22 +72,21 @@ error[E0592]: duplicate definitions with name `norm`
 
 なぜでしょうか？
 
-## コヒーレンスルールとは
+## なぜ衝突するのか
 
-[コヒーレンスルール](https://doc.rust-lang.org/reference/items/implementations.html#trait-implementation-coherence)は、C++の[単一定義の原則（ODR）](https://en.wikipedia.org/wiki/One_Definition_Rule)に似たルールで、
+2つのinherent impl のヘッダが重なりうる場合、コンパイラはE0592を出します。
+上記の例では、将来的に`Complex<T>`が`Float`を実装する可能性を排除できないため、`Tensor<T>`（`T = Complex<U>`のとき）と`Tensor<Complex<T>>`が同じ型を指しうるとコンパイラは判断します。
+実際には`num_complex::Complex`は`Float`を実装していませんし、`Float`は全順序（`Ord`）を要求するため複素数への実装は不自然ですが、コンパイラは保守的に判断します。
 
-- 孤児（orphan）ルールに違反する
-- 同じ型に対して実装が複数存在する可能性がある
-
-場合に違反していると判断されるルールです。
-ここで、孤児ルールは「対象となる型もしくはトレイトのいずれかが自クレート内で新たに定義したものでなければ実装はできない」というものです。
-今回は後者の「同じ型に対して実装が複数存在する可能性がある」ことが問題になります。
-上記の例では、将来的に`Complex<T>`が`Float`を実装する可能性を排除できないため、コンパイラは2つの`impl`が重複する可能性があると判断します。
-実際には`num_complex::Complex`は`Float`を実装していませんし、不自然な実装であるため今後も実装されることもまずないですがコンパイラは保守的に判断します。
+:::details 補足: コヒーレンスルールとの関係
+E0592はinherent implの重複チェックであり、Rust Referenceで定義される[コヒーレンスルール](https://doc.rust-lang.org/reference/items/implementations.html#trait-implementation-coherence)（trait implに対する孤児ルール＋重複チェック）とは厳密には別のルールです。
+ただし「upstream crateが将来trait implを追加する可能性」を考慮する推論ロジックは両者で共通しています。
+trait implの衝突（E0119）については[パターン3の注意点](#3-extension-trait（設計に注意）)で触れます。
+:::
 
 ## 回避パターン
 
-コヒーレンスルール違反を回避するための方法はいくつかあります。
+impl衝突を回避するための方法はいくつかあります。
 
 ### 1. 補助トレイトによる impl の1本化
 
@@ -100,20 +99,20 @@ use num_traits::Float;
 trait Scalar: Copy {
     type Real: Float;
 
-    fn abs(self) -> Self::Real;
+    fn abs_sq(self) -> Self::Real;
 }
 
 impl Scalar for f64 {
     type Real = f64;
-    fn abs(self) -> Self::Real {
-        self.abs()
+    fn abs_sq(self) -> Self::Real {
+        self * self
     }
 }
 
 impl Scalar for Complex<f64> {
     type Real = f64;
-    fn abs(self) -> Self::Real {
-        self.norm()
+    fn abs_sq(self) -> Self::Real {
+        self.norm_sqr()
     }
 }
 
@@ -126,10 +125,7 @@ impl<T: Scalar> Tensor<T> {
         self.data
             .iter()
             .copied()
-            .map(|x| {
-                let a = x.abs();
-                a * a
-            })
+            .map(|x| x.abs_sq())
             .fold(T::Real::zero(), |acc, x| acc + x)
             .sqrt()
     }
@@ -230,7 +226,7 @@ impl<T: Float> TensorExt<T> for Tensor<Complex<T>> {
 
 ### 4. Sealed trait で外部実装を禁止する
 
-Sealed trait はコヒーレンス回避そのものではなく、補助トレイト（パターン1）と組み合わせて外部クレートからの実装を禁止するための仕組みです。
+Sealed trait はimpl衝突の回避そのものではなく、補助トレイト（パターン1）と組み合わせて外部クレートからの実装を禁止するための仕組みです。
 
 #### モジュールを使う版
 
@@ -239,6 +235,8 @@ mod sealed {
     pub trait Sealed {}
     impl Sealed for f32 {}
     impl Sealed for f64 {}
+    impl Sealed for num_complex::Complex<f32> {}
+    impl Sealed for num_complex::Complex<f64> {}
 }
 
 pub trait Scalar: sealed::Sealed {
@@ -255,6 +253,8 @@ pub trait Scalar: sealed::Sealed {
 trait Sealed {}
 impl Sealed for f32 {}
 impl Sealed for f64 {}
+impl Sealed for num_complex::Complex<f32> {}
+impl Sealed for num_complex::Complex<f64> {}
 
 #[allow(private_bounds)]
 pub trait Scalar: Sealed {
@@ -273,7 +273,7 @@ pub trait Scalar: Sealed {
 
 | 観点 | 1. 補助トレイト1本化 | 2. Newtype | 3. Extension trait | 4. Sealed |
 |------|---------------------|-----------|-------------------|-----------|
-| coherence回避 | ◎ | ◎ | ◎ | ×（単体では不可） |
+| impl衝突回避 | ◎ | ◎ | ◎ | ×（単体では不可） |
 | APIの自然さ | ◎ | △ | △ | - |
 | 外部実装の制御 | △ | △ | △ | ◎ |
 | 実装コスト | ○ | ○ | ○ | ○ |
@@ -291,13 +291,13 @@ pub trait Scalar: Sealed {
 - 実数/複素数の差分は `Scalar` 実装へ移譲
 - 公開API安定化のため `Scalar` は `Sealed` で閉じる
 
-これで、coherence回避とAPI管理を役割分離できます。
+これで、impl衝突の回避とAPI管理を役割分離できます。
 
 ## まとめ
 
 - `impl` 衝突の直接原因は、重なりうる `impl` ヘッダ
 - 回避の本体は `impl` を非重複にすること
-- `Sealed` はcoherence回避ではなく、外部実装禁止と将来互換のための仕組み
+- `Sealed` はimpl衝突の回避ではなく、外部実装禁止と将来互換のための仕組み
 - `Newtype` と `Extension trait` は、設計条件を満たせば有効な回避策
 
 ## 参考
