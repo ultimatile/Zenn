@@ -72,8 +72,6 @@ error[E0592]: duplicate definitions with name `norm`
           for type `num_complex::Complex<_>` in future versions
 ```
 
-なぜでしょうか？
-
 ## なぜ衝突するのか
 
 2つのinherent implの対象型が重なりうる場合、コンパイラはE0592を出します。
