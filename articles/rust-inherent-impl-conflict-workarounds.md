@@ -82,7 +82,6 @@ error[E0592]: duplicate definitions with name `norm`
 
 :::details 補足: コヒーレンスルールとの関係
 E0592はinherent implの重複チェックであり、Rust Referenceで定義される[コヒーレンスルール](https://doc.rust-lang.org/reference/items/implementations.html#trait-implementation-coherence)（trait implに対する孤児ルール＋重複チェック）とは厳密には別のルールです。
-ただし「上流クレートが将来trait implを追加する可能性」を考慮する推論ロジックは両者で共通しています。
 trait implの衝突（E0119）については[拡張トレイトの注意点](#拡張トレイト)で触れます。
 :::
 
