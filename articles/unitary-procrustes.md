@@ -78,6 +78,10 @@ $$
 を認める^[証明は[R. A. Horn and C. R. Johnson, Matrix Analysis 2nd Edition](https://www.amazon.co.jp/dp/0521839408), Theorem 7.4.1.1 (p. 258)などを参照]と$A$がユニタリであることから，その特異値$\sigma(A)_i$は全て1であることがわかるので，$\mathrm{Re}\,\mathrm{tr}(A^{\dagger}B)\leq\sum_i\sigma_i$が得られる．
 :::
 
+## まとめ
+
+与えられた行列$B$に対してFrobeniusノルムで最も近いユニタリ行列$A_\mathrm{opt}$は、$B$を$U\Sigma V^\dagger$と特異値分解して、$A_\mathrm{opt}=UV^\dagger$で得られる。
+
 ::: message
 余談ですが，テンソルネットワークでは[Evenbly-Vidalの論文](https://link.aps.org/doi/10.1103/PhysRevB.79.144108)で使用されたのが有名になったようでEvenbly-Vidalアルゴリズムと呼ばれることがあるようですが，この問題は古くから[直交（ユニタリ）Procrustes問題](https://en.wikipedia.org/wiki/Orthogonal_Procrustes_problem)(の特殊形)として知られており^[リンク先のWikipediaによると1964年に最初に解かれたそうです]，ユニタリProcrustes解と呼ぶ方が自然だと思います．
 :::
