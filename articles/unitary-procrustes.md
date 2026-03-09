@@ -80,7 +80,7 @@ $$
 
 ## まとめ
 
-与えられた行列$B$に対してFrobeniusノルムで最も近いユニタリ行列$A_\mathrm{opt}$は、$B$を$U\Sigma V^\dagger$と特異値分解して、$A_\mathrm{opt}=UV^\dagger$で得られる。
+与えられた行列$B$に対してFrobeniusノルムで最も近いユニタリ行列$A_\mathrm{opt}$は、$B$を$B=U\Sigma V^\dagger$と特異値分解して，$A_\mathrm{opt}=UV^\dagger$とすることで得られる．
 
 ::: message
 余談ですが，テンソルネットワークでは[Evenbly-Vidalの論文](https://link.aps.org/doi/10.1103/PhysRevB.79.144108)で使用されたのが有名になったようでEvenbly-Vidalアルゴリズムと呼ばれることがあるようですが，この問題は古くから[直交（ユニタリ）Procrustes問題](https://en.wikipedia.org/wiki/Orthogonal_Procrustes_problem)(の特殊形)として知られており^[リンク先のWikipediaによると1964年に最初に解かれたそうです]，ユニタリProcrustes解と呼ぶ方が自然だと思います．
