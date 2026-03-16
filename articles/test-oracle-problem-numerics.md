@@ -63,6 +63,20 @@ published: false
 
 ### Invariant-Driven Development 関連
 
+- IDDは独立した新手法というより、Design by Contract（不変条件の明示）とProperty-Based Testing（性質のテスト）を「不変量」というレンズで統合し、開発ライフサイクル全体に組み込む開発スタイル/マインドセット
+- ただしDbCとPBTは本来レイヤーが異なる:
+  - DbC: 不変条件を**仕様として記述**する。実行時assertやTDDの手書きテストで成立し、ファジングは必須でない
+  - PBT: 性質を記述した上で**ランダム入力生成（ファジング）で反例を探索**する。入力生成が手法の本質
+- IDDの主張の核心は「不変量を書け」であり、検証手段は意図的に抽象化されている:
+  - ファザー（Echidna, Medusa等）、形式検証（Halmos, Certora等）、オンチェーンassert、ユニットテスト、手動レビュー、デプロイ後モニタリングを全て選択肢として列挙
+  - 「単純な不変量や、ツールで検証するには複雑すぎる不変量には、ドキュメントとユニットテストが重要」と明記（Trail of Bits記事）
+  - つまりファジングは必須ではなく、DbCとPBTを区別せず不変量の記述を上位概念として押し出す設計
+- Trail of Bitsの文脈ではスマートコントラクトのセキュリティ監査が出自で、Echidna（ファザー）による不変量のPBT的検証が実装の中心
+- [Introduction to properties-driven development - DEV Community](https://dev.to/meeshkan/introduction-to-properties-driven-development-547g)
+  - PBTをTDDに適用する"properties-driven development"の解説。IDDと実質的に同じ発想
+- [Design by contract - Wikipedia](https://en.wikipedia.org/wiki/Design_by_contract)
+  - 事前条件・事後条件・不変条件を仕様として記述。Bertrand Meyer / Eiffel (1986)。IDDの思想的源流の一つ
+
 #### 概念・手法
 
 - [The call for invariant-driven development - Trail of Bits Blog (2025)](https://blog.trailofbits.com/2025/02/12/the-call-for-invariant-driven-development/)
