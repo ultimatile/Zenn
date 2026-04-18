@@ -3,7 +3,8 @@ title: "ブラウザで日本語入力中にIMEが勝手に切り替わると思
 emoji: "👻"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["neovim", "lsp", "ime"]
-published: false
+published: true
+published_at: 2026-04-19 23:55
 ---
 
 :::message
