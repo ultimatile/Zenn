@@ -112,10 +112,10 @@ enum MyError {
 
 軸 A (Display で何を書くか) と軸 B (source を露出するか) は **logically 独立**:
 
-| | School A | School B |
+| `#[source]` | School A | School B |
 | --- | --- | --- |
-| `#[source]` あり | caller が chain walker のとき詳細を回復可、`to_string()` は context のみ | `to_string()` で詳細、chain walker でも詳細回復可 (ただし重複の罠あり、後述) |
-| `#[source]` なし | `to_string()` も chain walker も内側を見られない (情報損失) | `to_string()` のみで詳細、chain walker からは追えない |
+| あり | caller が chain walker のとき詳細を回復可、`to_string()` は context のみ | `to_string()` で詳細、chain walker でも詳細回復可 (ただし重複の罠あり、後述) |
+| なし | `to_string()` も chain walker も内側を見られない (情報損失) | `to_string()` のみで詳細、chain walker からは追えない |
 
 実用上、**`#[source]` あり** を default にしたうえで、軸 A (School A / School B) を caller の前提に応じて選ぶのが筋。
 
@@ -148,13 +148,13 @@ enum TopError {
 この例は `programs/rust-error-display-two-schools` で再現できる。
 
 ```console
-$ cd programs/rust-error-display-two-schools
-$ cargo run
+cd programs/rust-error-display-two-schools
+cargo run
 ```
 
 これを `anyhow::Error` 化して chain walker 系のフォーマッタで出力してみる。
 
-`{:#}` (alternate `Display`、`: ` 区切りの 1 行チェーン):
+`{:#}` (alternate `Display`、`:` 区切りの 1 行チェーン):
 
 ```text
 request handling failed: backend operation failed: file not found: foo.txt: backend operation failed: file not found: foo.txt: file not found: foo.txt
