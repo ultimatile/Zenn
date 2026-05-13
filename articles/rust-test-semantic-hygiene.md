@@ -126,7 +126,7 @@ use rstest::rstest;
 fn slice_scalar_is_identity(#[case] order: MemoryOrder) {
     let t = Dense::new(vec![42.0], vec![], order);
     let s = t.slice(&[]);
-    assert_eq!(s.shape(), &[] as &[usize]);
+    assert_eq!(s.shape(), &[]);
     assert_eq!(s.data(), &[42.0]);
     assert_eq!(s.order(), order);
 }
