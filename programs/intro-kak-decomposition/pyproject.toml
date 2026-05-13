@@ -1,0 +1,14 @@
+[project]
+name = "intro-kak-decomposition"
+version = "0.1.0"
+description = "PoC implementation of KAK decomposition for 2-qubit gates"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4",
+]
