@@ -1,5 +1,5 @@
 ---
-title: "Python CLIアプリでの--versionの生やし方"
+title: "Python CLIアプリでのversionオプションの生やし方"
 emoji: "🏷️"
 type: "tech"
 topics: ["python", "click", "typer", "argparse", "uv"]
@@ -8,10 +8,11 @@ published: false
 
 ## TL;DR
 
-- 静的バージョンを使う構成では`pyproject.toml`の`project.version`が[信頼できる唯一の情報源(SSOT)](https://ja.wikipedia.org/wiki/%E4%BF%A1%E9%A0%BC%E3%81%A7%E3%81%8D%E3%82%8B%E5%94%AF%E4%B8%80%E3%81%AE%E6%83%85%E5%A0%B1%E6%BA%90)。ランタイムの参照先はインストール済みdist metadataで、`importlib.metadata.version("dist-name")`で読む(Python 3.8+標準ライブラリ)。動的バージョニング(`setuptools-scm`等)を使う場合はSSOTがgitタグ等に移るが、ランタイムの読み方は同じ。
-- **Click**: `@click.version_option(None, "-V", "--version", package_name="dist-name")`
-- **Typer**: `is_eager=True`なcallbackで`metadata.version("dist-name")`を`print` → `typer.Exit()`
-- **argparse**: `parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {metadata.version('dist-name')}")`
+- 静的バージョンを使う構成では`pyproject.toml`の`project.version`が[信頼できる唯一の情報源(SSOT)](https://ja.wikipedia.org/wiki/%E4%BF%A1%E9%A0%BC%E3%81%A7%E3%81%8D%E3%82%8B%E5%94%AF%E4%B8%80%E3%81%AE%E6%83%85%E5%A0%B1%E6%BA%90)。ランタイムの参照先はインストール済みdist metadataで、`importlib.metadata.version("dist-name")`で読む。動的バージョニング([`setuptools-scm`等)を使う場合はSSOTがgitタグ等に移るが、ランタイムの読み方は同じ。
+- 実装法はフレームワークごとに:
+  - **Click**: `@click.version_option(None, "-V", "--version", package_name="dist-name")`
+  - **Typer**: `is_eager=True`なコールバックで`metadata.version("dist-name")`を`print` → `typer.Exit()`
+  - **argparse**: `parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {metadata.version('dist-name')}")`
 - `metadata.version()`に渡すのは**distribution name** (`pyproject.toml`の`[project] name`)で、**import name**ではない。両者がハイフン/アンダースコアやプレフィックスで一致しない構成があるので要注意。
 - フォールバック(`PackageNotFoundError`時に`pyproject.toml`を直接読む)はuvワークフローでは基本踏まれない。デフォルト不要、必要になったら足せばよい。
 
@@ -29,13 +30,13 @@ pyproject.toml [project] version    (静的バージョンの場合のSSOT)
 importlib.metadata.version("dist-name")
 ```
 
-ランタイムで参照されるのはインストール済みwheelに展開された`<dist>-<ver>.dist-info/METADATA`です(sdistやegg-info側で見かける`PKG-INFO`とは別物で、`importlib.metadata`が読むのは前者)。SSOTは静的バージョン構成なら`pyproject.toml`の`project.version`、動的バージョニング構成ならgitタグ等の上流に移りますが、いずれの場合もビルド時に最終確定値が`METADATA`に焼かれます。CLI側はこのI/Fさえ叩けばよく、上流の戦略には依存しません。
+ランタイムで参照されるのはインストール済みwheelに展開された`<dist>-<ver>.dist-info/METADATA`です(sdistやegg-info側で見かける`PKG-INFO`とは別物で、`importlib.metadata`が読むのは前者)。
+SSOTは静的バージョン構成なら`pyproject.toml`の`project.version`、動的バージョニング構成ならgitタグ等の上流に移りますが、いずれの場合もビルド時に最終確定値が`METADATA`に焼かれます。
+CLI側はこの`importlib.metadata.version()`さえ呼べばよく、上流の戦略には依存しません。`importlib.metadata`は標準ライブラリで追加依存ゼロです。
 
-`importlib.metadata`はPython 3.8+で標準ライブラリ入りしました(3.7以前は`importlib_metadata`バックポート)。追加依存ゼロでバージョン解決ができるのが今回の話の土台になります。
+### distribution名とimport名の食い違いに注意
 
-### distribution nameとimport nameの食い違いに注意
-
-`metadata.version(...)`に渡すのは**distribution name** (`pyproject.toml`の`[project] name`、つまりPyPIに上がる名前/ `pip install <これ>`で書く名前)で、`import`時に使う**import name**とは別物です。
+`metadata.version(...)`に渡すのはdistribution名(`pyproject.toml`の`[project] name`、つまりPyPIに上がる名前/ `pip install <これ>`で書く名前)で、`import`時に使うimport名とは別物です。
 
 - 有名な食い違い例:
   - `Pillow` (dist) / `PIL` (import) — `metadata.version("Pillow")`が正解。
@@ -48,7 +49,8 @@ importlib.metadata.version("dist-name")
 
 ## Click: `@click.version_option`
 
-完全委譲です。`package_name`にdist名を渡すと、内部で`importlib.metadata.version()`を引いてくれます。
+完全委譲です。
+`package_name`にdist名を渡すと、内部で`importlib.metadata.version()`を引いてくれます。
 
 ```python
 import click
@@ -73,7 +75,7 @@ def cli():
 
 Clickを採用しているならこれが最小・最良です。`importlib.metadata`呼び出しすら明示的に書かないで済みます。
 
-## Typer: callbackパターン
+## Typer: コールバックパターン
 
 TyperはClickの薄いラッパですが、Clickの`version_option`相当のショートカットは無いので自前で書きます。
 
@@ -107,7 +109,7 @@ def app_callback(
 
 ### `is_eager=True`を忘れない
 
-これが地味に重要です。`is_eager=True`を付けないとTyper/Clickは他のオプションのパース・バリデーションを先に進めてしまい、サブコマンドの必須引数が無い場合に「`--version`だけ叩いたのにusageエラーで死ぬ」現象が出ます。eagerオプションは他のパースより先に発火するので、callbackの中で`typer.Exit()`すれば残りのバリデーションをスキップして即終了できます。
+これが地味に重要です。`is_eager=True`を付けないとTyper/Clickは他のオプションのパース・バリデーションを先に進めてしまい、サブコマンドの必須引数が無い場合に「`--version`だけ叩いたのにusageエラーで死ぬ」現象が出ます。eagerオプションは他のパースより先に発火するので、コールバックの中で`typer.Exit()`すれば残りのバリデーションをスキップして即終了できます。
 
 ### `@app.callback()`内に同居させる
 
@@ -158,7 +160,7 @@ def _read_version() -> str:
         return metadata.version("dist-name")
     except metadata.PackageNotFoundError:
         pass
-    import tomllib  # Python 3.11+
+    import tomllib
     from pathlib import Path
     try:
         pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
@@ -184,7 +186,7 @@ def _read_version() -> str:
 
 ## 動的バージョニングを使っている場合
 
-`setuptools-scm` / `hatch-vcs` / `versioneer`等でgitタグからバージョンを生成する構成でも、ビルド後のdist-infoには確定バージョンが焼かれています。**ランタイムからの読み方は`importlib.metadata.version()`で全く同じ**で、CLI側の実装はバージョン管理戦略に依存しません。
+`setuptools-scm` / `hatch-vcs`等でgitタグからバージョンを生成する構成でも、ビルド後のdist-infoには確定バージョンが焼かれています。**ランタイムからの読み方は`importlib.metadata.version()`で全く同じ**で、CLI側の実装はバージョン管理戦略に依存しません。
 
 `pyproject.toml`の`[project]`に`dynamic = ["version"]`が入っているプロジェクトだと「TOMLを直接パース」フォールバックは`project.version`が無くて失敗します。動的バージョニング採用時はfallbackの存在意義が更に薄くなるので、`metadata.version()`のみで割り切るのが妥当です。
 

@@ -1,0 +1,21 @@
+% KAK decomposition tensor network diagram (L2R quantum-circuit convention).
+% Central two-qubit gate spans both wires via quantikz's \gate[2]{...}.
+% Global phase e^{i\phi} is kept outside the network as a scalar prefactor.
+\documentclass[border=5pt]{standalone}
+\usepackage{tikz}
+\usepackage{quantikz}
+\begin{document}
+$U \;=\; \mathrm{e}^{\mathrm{i}\phi} \;\cdot\;$%
+\begin{quantikz}[column sep=0.5cm, row sep={0.9cm,between origins}]
+  \lstick{$|\text{in}_1\rangle$}
+    & \gate{K_{2L}}
+    & \gate[2]{\exp\bigl(\mathrm{i}\sum_\alpha c_\alpha\sigma_\alpha\sigma_\alpha\bigr)}
+    & \gate{K_{1L}}
+    & \rstick{$|\text{out}_1\rangle$} \\
+  \lstick{$|\text{in}_2\rangle$}
+    & \gate{K_{2R}}
+    &
+    & \gate{K_{1R}}
+    & \rstick{$|\text{out}_2\rangle$}
+\end{quantikz}
+\end{document}
