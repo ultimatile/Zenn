@@ -49,7 +49,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-error-display-two-schools"
+name = "rust-error-source-display-duplication"
 version = "0.1.0"
 dependencies = [
  "anyhow",
