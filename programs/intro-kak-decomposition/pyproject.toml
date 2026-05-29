@@ -12,3 +12,9 @@ dependencies = [
 dev = [
     "pytest>=7.4",
 ]
+# Figure generation (Weyl-chamber GIF). Kept separate from the PoC core so
+# `uv run pytest` does not pull in a plotting stack.
+viz = [
+    "matplotlib>=3.8",
+    "pillow>=10.0",
+]

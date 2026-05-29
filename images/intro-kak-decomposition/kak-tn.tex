@@ -7,15 +7,15 @@
 \begin{document}
 $U \;=\; \mathrm{e}^{\mathrm{i}\phi} \;\cdot\;$%
 \begin{quantikz}[column sep=0.5cm, row sep={0.9cm,between origins}]
-  \lstick{$|\text{in}_1\rangle$}
-    & \gate{K_{2L}}
-    & \gate[2]{\exp\bigl(\mathrm{i}\sum_\alpha c_\alpha\sigma_\alpha\sigma_\alpha\bigr)}
-    & \gate{K_{1L}}
-    & \rstick{$|\text{out}_1\rangle$} \\
-  \lstick{$|\text{in}_2\rangle$}
-    & \gate{K_{2R}}
+  \lstick{$1$}
+    & \gate{K'_1}
+    & \gate[2]{\exp\bigl(\mathrm{i}\sum_\alpha c_\alpha\sigma_{1\alpha}\sigma_{2\alpha}\bigr)}
+    & \gate{K_1}
+    & \\
+  \lstick{$2$}
+    & \gate{K'_2}
     &
-    & \gate{K_{1R}}
-    & \rstick{$|\text{out}_2\rangle$}
+    & \gate{K_2}
+    &
 \end{quantikz}
 \end{document}

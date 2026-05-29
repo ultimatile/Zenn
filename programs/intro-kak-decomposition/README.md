@@ -11,6 +11,15 @@ uv run python example.py     # worked examples (CNOT, SWAP, sqrt(CNOT), random)
 uv run pytest -q              # full test suite
 ```
 
+Regenerate the Weyl-chamber figure (static 3D PNG) used in the article:
+
+```sh
+uv run --group viz python weyl_chamber.py   # -> ../../images/intro-kak-decomposition/weyl-chamber.png
+```
+
+Gate marker positions in the figure are produced by `kak_decompose`, so the
+figure and the article text cannot drift.
+
 ## Files
 
 - `kak.py` — implementation
@@ -21,6 +30,7 @@ uv run pytest -q              # full test suite
   - `kak_decompose` — top-level entry point with diagonal-M bypass
 - `test_kak.py` — pinned chamber loci + 100 Haar-random + dressed resonance + error paths
 - `example.py` — print Cartan parameters and round-trip error for representative inputs
+- `weyl_chamber.py` — render the Weyl chamber as a static 3D PNG (matplotlib; `viz` group)
 
 ## Algorithm steps
 
