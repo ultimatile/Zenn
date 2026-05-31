@@ -8,19 +8,19 @@ published: false
 
 ## TL;DR
 
-- Rustのerror chainでは、`Display`は**そのerror自身の説明**、`source()`は**原因errorへのリンク**、chain walkerは**全体の表示**、という責務分担にするのが基本です。
+- Rustのエラーチェーンでは、`Display`は**そのエラー自身の説明**、`source()`は**原因エラーへのリンク**、reporterは**全体の表示**、という責務分担にするのが基本です。
 - `#[source]`/`#[from]`で原因を露出しているなら、同じ原因を`#[error("...: {0}")]`で`Display`にも埋め込むべきではありません。
-- 両方やると、`anyhow`などのchain walkerが`source()`を辿ったときに**同じ原因が重複表示**されます。
-- context-bearing errorは`#[error("自レイヤの文脈")]` + `#[source]`、pure wrapperは`#[error(transparent)]`が基本形です。
-- `error.to_string()`単独で原因まで見せたい場合は例外的にあり得ますが、chain walkerと組み合わせるならfootgunになります。
+- 両方やると、`anyhow`などのreporterが`source()`を辿ったときに**同じ原因が重複表示**されます。
+- 文脈を持つエラーは`#[error("自レイヤの文脈")]` + `#[source]`、文脈を持たないラッパーは`#[error(transparent)]`が基本形です。
+- `error.to_string()`単独で原因まで見せたい場合は例外的にあり得ますが、reporterと組み合わせるならfootgunになります。
 
 ## はじめに
 
-`std::error::Error`のドキュメントには、errorがunderlying errorをwrapするときのガイドラインがあります。
+`std::error::Error`のドキュメントには、エラーがunderlying errorをwrapするときのガイドラインがあります。
 
 > In error types that wrap an underlying error, the underlying error should be either returned by the outer error’s `Error::source()`, or rendered by the outer error’s `Display` implementation, but not both.
 
-つまり、内側のerrorは:
+つまり、内側のエラーは:
 
 - `source()`で返す
 - `Display`に描画する
@@ -48,14 +48,14 @@ backend operation failed: connection refused
 
 しかし、この型は同じ`BackendError`を2つの経路で外に出しています。
 
-- `Display`: `: {0}`でinner errorの文言を埋め込む
-- `source()`: `#[source]`でinner errorそのものを返す
+- `Display`: `: {0}`で内側のエラーの文言を埋め込む
+- `source()`: `#[source]`で内側のエラーそのものを返す
 
 これが重複表示の原因になります。
 
-## 2. Rustのerror chainの責務分担
+## Rustのエラーチェーンの責務分担
 
-Rustの`Error`は、単一の文字列ではなくchainを表現できます。
+Rustの`Error`は、単一の文字列ではなくエラーチェーンを表現できます。
 
 ```text
 top error
@@ -66,12 +66,12 @@ top error
 このとき、それぞれの責務を分けて考えるとわかりやすいです。
 
 ```text
-Display:   そのerror自身の文脈を説明する
-source():  原因errorへのリンクを返す
-reporter:  source()をwalkして全体を表示する
+Display:   そのエラー自身の文脈を説明する
+source():  原因エラーへのリンクを返す
+reporter:  source()を辿って全体を表示する
 ```
 
-たとえば「設定ファイルの読み込みに失敗した。原因は`io::Error`」なら、外側のerrorはこう書きます。
+たとえば「設定ファイルの読み込みに失敗した。原因は`io::Error`」なら、外側のエラーはこう書きます。
 
 ```rust
 #[derive(thiserror::Error, Debug)]
@@ -87,11 +87,11 @@ enum ConfigError {
 failed to read config
 ```
 
-原因の`io::Error`は消えていません。`source()`に残っています。必要なら`anyhow`、`eyre`、`miette`、自前formatterなどがchainを辿って表示します。
+原因の`io::Error`は消えていません。`source()`に残っています。必要なら`anyhow`、`eyre`、`miette`、自前のフォーマッタなどがチェーンを辿って表示します。
 
-この分担にすると、各layerの`Display`は局所的に保てます。外側のerrorが子孫errorの表示形式まで面倒を見る必要はありません。
+この分担にすると、各層の`Display`は局所的に保てます。外側のエラーが子孫エラーの表示形式まで面倒を見る必要はありません。
 
-## 3. thiserrorで踏みやすいfootgun
+## thiserrorで踏みやすいfootgun
 
 `thiserror`は`#[error("...")]`で`Display`を、`#[source]` / `#[from]`で`source()`を実装できます。
 
@@ -115,13 +115,13 @@ enum MyError {
 }
 ```
 
-`#[error("...: {0}")]`はinner errorの`Display`を外側の`Display`に埋め込みます。さらに`#[source]`は同じinner errorをchain walkerにも見せます。
+`#[error("...: {0}")]`は内側のエラーの`Display`を外側の`Display`に埋め込みます。さらに`#[source]`は同じ内側のエラーをreporterにも見せます。
 
-`error.to_string()`だけなら、たしかに情報量が増えて便利に見えます。しかしchain walkerから見ると、同じ原因が`Display`と`source()`の両方に現れます。
+`error.to_string()`だけなら、たしかに情報量が増えて便利に見えます。しかしreporterから見ると、同じ原因が`Display`と`source()`の両方に現れます。
 
-## 4. 重複出力の例
+## 重複出力の例
 
-3段のerrorを考えます。
+3段のエラーを考えます。
 
 ```rust
 #[derive(thiserror::Error, Debug)]
@@ -150,7 +150,7 @@ cd programs/rust-error-source-display-duplication
 cargo run
 ```
 
-これを`anyhow::Error`化してchain walker系のフォーマッタで出力します。
+これを`anyhow::Error`化してreporter系のフォーマッタで出力します。
 
 `{:#}` (alternate `Display`、`:`区切りの1行チェーン):
 
@@ -170,22 +170,22 @@ Caused by:
 
 leafの`"file not found: foo.txt"`が何度も出ます。
 
-理由は単純で、各layerの`Display`がinner errorの文言をすでに含んでいるためです。そのうえでreporterが`source()`をwalkし、同じinner errorをもう一度表示します。
+理由は単純で、各層の`Display`が内側のエラーの文言をすでに含んでいるためです。そのうえでreporterが`source()`を辿り、同じ内側のエラーをもう一度表示します。
 
-これはreporterの問題ではありません。error型が同じ情報を2つの経路で渡していることが原因です。
+これはreporterの問題ではありません。エラー型が同じ情報を2つの経路で渡していることが原因です。
 
-## 5. 基本形: context-bearing errorは自レイヤだけを書く
+## 基本形: 文脈を持つエラーは自レイヤだけを書く
 
-contextを持つerrorは、`Display`に自レイヤの文脈だけを書きます。
+文脈を持つエラーは、`Display`に自レイヤの文脈だけを書きます。
 
 ```rust
 #[derive(thiserror::Error, Debug)]
-enum SweepError {
-    #[error("step failed at site {site}")]
-    Step {
-        site: usize,
+enum BatchError {
+    #[error("failed to process item {index}")]
+    Item {
+        index: usize,
         #[source]
-        source: HeffError,
+        source: WorkerError,
     },
 }
 ```
@@ -193,24 +193,26 @@ enum SweepError {
 この型の`Display`は:
 
 ```text
-step failed at site 3
+failed to process item 3
 ```
 
-原因の`HeffError`は`source()`から辿れます。
+原因の`WorkerError`は`source()`から辿れます。
 
 ```text
-step failed at site 3
+failed to process item 3
 
 Caused by:
-    0: failed to diagonalize effective Hamiltonian
-    1: LAPACK error ...
+    0: worker failed to run
+    1: connection refused
 ```
 
-この形なら、各layerは自分の文脈だけを持ち、最終的な表示はreporterが決められます。
+この形なら、各層は自分の文脈だけを持ち、最終的な表示はreporterが決められます。
 
-## 6. pure wrapperはtransparent
+ここで`#[source]`を使い`#[from]`を使っていないのは、`Item`が`index`という自前フィールドを持つためです。`#[from]`はsourceが唯一のフィールドのとき（変換`From`も同時に生成したいとき）に使い、`index`のような追加の文脈を併せ持つvariantでは`#[source]`を使います。どちらもsourceを露出する点は同じで、フィールド構成で選び分けます。
 
-自前のcontextを持たず、内側errorをそのまま上に運ぶだけのvariantには`#[error(transparent)]`を使います。
+## 6. 文脈を持たないラッパーはtransparent
+
+自前の文脈を持たず、内側のエラーをそのまま上に運ぶだけのvariantには`#[error(transparent)]`を使います。
 
 ```rust
 #[derive(thiserror::Error, Debug)]
@@ -220,24 +222,26 @@ enum AppError {
 }
 ```
 
-これは`Display`と`source()`をinner errorに委譲します。
+これは`Display`と`source()`を内側のエラーに委譲します。
 
-「Backend errorというvariantに入れたいだけで、追加の文脈はない」というケースで、外側に余計な文言を足さないための指定です。
+「`Backend`というvariantに入れたいだけで、追加の文脈はない」というケースで、外側に余計な文言を足さないための指定です。
 
 判断基準はこうです。
 
 ```text
-自前contextがある-> #[error("自レイヤの文脈")] + #[source]
-自前contextがない-> #[error(transparent)]
+自前の文脈がある-> #[error("自レイヤの文脈")] + #[source]
+自前の文脈がない-> #[error(transparent)]
 ```
 
-たとえば「site index Nで失敗した」は自前contextがあるのでtransparentではありません。一方、「下位error型をAPI上のenumに詰め替えるだけ」はtransparentです。
+たとえば「item index Nで失敗した」は自前の文脈があるのでtransparentではありません。一方、「下位エラー型をAPI上のenumに詰め替えるだけ」はtransparentです。
 
-## 7. 例外: Displayに含めてもよいケース
+フィールドを持たない固定文字列のcontext（たとえば`#[error("backend operation failed")]`）も「自前の文脈」に数えます。`transparent`にするのは、内側のエラーと区別する文言が一切ない純粋な詰め替えだけです。「どの層で失敗したか」を一言でも示すなら、それは自レイヤの文脈なので、`#[error("...")]` + `#[source]`を使います。
 
-`Display`にinner情報を含めることが常に悪いわけではありません。
+## 例外: Displayに含めてもよいケース
 
-たとえば、内側に構造化されたerrorが存在せず、外部システムから文字列しか得られないなら、その文字列を`Display`に含めるしかありません。
+`Display`に内側の情報を含めることが常に悪いわけではありません。
+
+たとえば、内側に構造化されたエラーが存在せず、外部システムから文字列しか得られないなら、その文字列を`Display`に含めるしかありません。
 
 ```rust
 #[derive(thiserror::Error, Debug)]
@@ -247,7 +251,7 @@ enum ExternalError {
 }
 ```
 
-この場合、`message`は`source()`で辿れるerrorではありません。`Display`に出しても二重経路にはなりません。
+この場合、`message`は`source()`で辿れるエラーではありません。`Display`に出しても二重経路にはなりません。
 
 また、小さなアプリケーションで`error.to_string()`しか使わないと決めているなら、`#[error("...: {source}")]`と書く割り切りもあり得ます。
 
@@ -262,9 +266,11 @@ enum AppError {
 }
 ```
 
-ただし、この型を`anyhow`などのchain walkerに渡すと重複し得ます。ライブラリのpublic error型や、複数のreporterに流れるerror型では避けた方がよいです。
+ただし、この型を`anyhow`などのreporterに渡すと重複し得ます。ライブラリのpublic エラー型や、複数のreporterに流れるエラー型では避けた方がよいです。
 
-最終的に一行で原因まで表示したいなら、error型の`Display`に原因を畳み込むのではなく、最終表示境界でchainをflattenする方が扱いやすいです。
+レビューで「`{e}`だけだと原因が見えないので`Display`に埋め込んでほしい」と求められることがあります。アプリ内部で完結する型ならその割り切りもありますが、ライブラリのpublic エラー型では上記の重複が押し返しの根拠になります。原因は`source()`チェーンに残っていて消えてはいないので、詳細が要るreporterはそこから組み立てられます。
+
+最終的に一行で原因まで表示したいなら、エラー型の`Display`に原因を畳み込むのではなく、最終表示境界でチェーンをflattenする方が扱いやすいです。
 
 ```rust
 fn format_error_chain(error: &(dyn std::error::Error)) -> String {
@@ -281,21 +287,24 @@ fn format_error_chain(error: &(dyn std::error::Error)) -> String {
 }
 ```
 
-この方が「error型が何を表すか」と「ユーザーにどう表示するか」を分けられます。
+この方が「エラー型が何を表すか」と「ユーザーにどう表示するか」を分けられます。
 
-## 8. まとめ
+`anyhow`を使うなら、この`format_error_chain`相当を`{:#}`が最初からやってくれます。reporterを使う前提なら自前のflatten helperすら要らず、「`Display`に畳み込まない」だけで一行表示が得られます。
+
+## まとめ
 
 - `thiserror`の`#[error("...")]`は`Display`を生成します。
-- `#[source]` / `#[from]`は`source()` chainを生成します。
-- `#[source]`で返すinner errorを`#[error("...: {0}")]`でも表示すると、同じ原因が二重経路になります。
-- chain walkerが`source()`を辿ると、その二重化が重複表示として現れます。
-- 基本形は、context-bearing errorでは**自レイヤの文脈だけを`Display`に書く**ことです。
-- pure wrapperには`#[error(transparent)]`を使います。
-- 原因まで含めた一行表示は、error型の`Display`ではなく最終表示境界のreporterで作ります。
+- `#[source]` / `#[from]`は`source()`チェーンを生成します。
+- `#[source]`で返す内側のエラーを`#[error("...: {0}")]`でも表示すると、同じ原因が二重経路になります。
+- reporterが`source()`を辿ると、その二重化が重複表示として現れます。
+- 基本形は、文脈を持つエラーでは**自レイヤの文脈だけを`Display`に書く**ことです。
+- 文脈を持たないラッパーには`#[error(transparent)]`を使います。固定文字列でも自レイヤの文脈があるなら、transparentではなく`#[error("...")]` + `#[source]`です。
+- `#[from]`はsourceが唯一フィールドのとき、`#[source]`は文脈フィールドを併せ持つとき。`Display`の方針とは別軸の選択です。
+- 原因まで含めた一行表示は、エラー型の`Display`ではなく最終表示境界のreporter（`anyhow`なら`{:#}`）で作ります。
 
 ## 参考
 
 - [std::error::Error docs](https://doc.rust-lang.org/std/error/trait.Error.html) — `Display`と`source()`のguideline
 - [What the Error Handling Project Group is Working Towards](https://blog.rust-lang.org/inside-rust/2021/07/01/What-the-error-handling-project-group-is-working-towards/) — Duplicate Information Issue
 - [thiserror docs](https://docs.rs/thiserror) — `#[error(transparent)]`と`#[source]`
-- [anyhow docs](https://docs.rs/anyhow) — chain walkerとしての`{:#}` / `{:?}`フォーマッタ
+- [anyhow docs](https://docs.rs/anyhow) — reporterとしての`{:#}` / `{:?}`フォーマッタ
