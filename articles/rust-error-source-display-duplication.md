@@ -11,12 +11,12 @@ published: false
 - Rustのエラーチェーンでは、`Display`は**そのエラー自身の説明**、`source()`は**原因エラーへのリンク**、reporterは**全体の表示**、という責務分担にするのが基本です。
 - `#[source]`/`#[from]`で原因を露出しているなら、同じ原因を`#[error("...: {0}")]`で`Display`にも埋め込むべきではありません。
 - 両方やると、`anyhow`などのreporterが`source()`を辿ったときに**同じ原因が重複表示**されます。
-- 文脈を持つエラーは`#[error("自レイヤの文脈")]` + `#[source]`、文脈を持たないラッパーは`#[error(transparent)]`が基本形です。
+- 文脈を持つエラーは`#[error("自レイヤの文脈")]`+`#[source]`、文脈を持たないラッパーは`#[error(transparent)]`が基本形です。
 - `error.to_string()`単独で原因まで見せたい場合は例外的にあり得ますが、reporterと組み合わせるならfootgunになります。
 
 ## はじめに
 
-`std::error::Error`のドキュメントには、エラーがunderlying errorをwrapするときのガイドラインがあります。
+`std::error::Error`のドキュメントには、あるエラーが内側のエラーをラップするときのガイドラインがあります。
 
 > In error types that wrap an underlying error, the underlying error should be either returned by the outer error’s `Error::source()`, or rendered by the outer error’s `Display` implementation, but not both.
 
@@ -81,19 +81,21 @@ enum ConfigError {
 }
 ```
 
-`ConfigError::Read`の`Display`は自分の層の文脈だけを言います。
+`ConfigError::Read`の`Display`は自分の層の文脈だけを示します。
 
 ```text
 failed to read config
 ```
 
-原因の`io::Error`は消えていません。`source()`に残っています。必要なら`anyhow`、`eyre`、`miette`、自前のフォーマッタなどがチェーンを辿って表示します。
+原因の`io::Error`は消えておらず、`source()`に残っています。
+必要なら`anyhow`、`eyre`、`miette`、自前のフォーマッタなどがチェーンを辿って表示します。
 
-この分担にすると、各層の`Display`は局所的に保てます。外側のエラーが子孫エラーの表示形式まで面倒を見る必要はありません。
+この分担にすると、各層の`Display`は局所的に保てます。
+外側のエラーが子孫エラーの表示形式まで面倒を見る必要はありません。
 
 ## thiserrorで踏みやすいfootgun
 
-`thiserror`は`#[error("...")]`で`Display`を、`#[source]` / `#[from]`で`source()`を実装できます。
+`thiserror`は`#[error("...")]`で`Display`を、`#[source]`/`#[from]`で`source()`を実装できます。
 
 ```rust
 #[derive(thiserror::Error, Debug)]
@@ -115,9 +117,11 @@ enum MyError {
 }
 ```
 
-`#[error("...: {0}")]`は内側のエラーの`Display`を外側の`Display`に埋め込みます。さらに`#[source]`は同じ内側のエラーをreporterにも見せます。
+`#[error("...: {0}")]`は内側のエラーの`Display`を外側の`Display`に埋め込みます。
+さらに`#[source]`は同じ内側のエラーをreporterにも見せます。
 
-`error.to_string()`だけなら、たしかに情報量が増えて便利に見えます。しかしreporterから見ると、同じ原因が`Display`と`source()`の両方に現れます。
+`error.to_string()`だけなら、たしかに情報量が増えて便利に見えます。
+しかしreporterから見ると、同じ原因が`Display`と`source()`の両方に現れます。
 
 ## 重複出力の例
 
@@ -141,13 +145,6 @@ enum TopError {
     #[error("request handling failed: {0}")]
     Mid(#[from] MidError),
 }
-```
-
-この例は`programs/rust-error-source-display-duplication`で再現できます。
-
-```console
-cd programs/rust-error-source-display-duplication
-cargo run
 ```
 
 これを`anyhow::Error`化してreporter系のフォーマッタで出力します。
