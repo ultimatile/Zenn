@@ -95,7 +95,7 @@ Post-hoc audit against the current diff.
 
 したがって、`SKILL.md`のようなYAMLフロントマター+Markdown本文のファイルを整形したいだけなら、`prettier`一つで足り、`partfmt`は要りません。
 車輪の再発明でした。
-`prettier`の存在を知らずに作ってしまった、というのが正直なところです。
+`prettier`のMarkdownフォーマッタがYAMLフロントマターまで面倒を見てくれることを知らずに作ってしまった、というのが正直なところです。
 
 ### それでも`partfmt`が要る場合
 
