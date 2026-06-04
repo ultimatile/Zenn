@@ -10,3 +10,8 @@ published: false
 
 Neovimのプラグインマネージャー[lazy.nvim](https://github.com/folke/lazy.nvim)で設定をカスタマイズする際に書き方のTIPSを紹介します。
 特に`opts`と`config`の使い方について焦点を当てます。
+
+## Lua table memo
+
+- `{}`: 空のテーブルを作成
+- `{ key = value }`: キーと値のペアを持つテーブル
