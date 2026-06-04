@@ -211,6 +211,38 @@ def _read_version() -> str:
 なお`pyproject.toml`の場所を「ファイルの親の親」のような相対パス決め打ちで取りに行くのは、パッケージ構造を変えたときに静かに壊れます。
 フォールバックを入れるなら「パスが見つからない/ TOMLパース失敗/ `project.version`キー欠落」を全部`except`で潰して`"unknown"`に逃がす設計にしておきます(上のサンプルはその形です)。
 
+### `src`レイアウトは「install強制」のガードになる
+
+上の表の下2行(`PackageNotFoundError`が出るケース)は、突き詰めると「**パッケージはimportできるのにdist-infoが無い**」という一点に収束します。
+そしてこの状態に*うっかり*到達できてしまうのは、パッケージをリポジトリ直下に置く**flatレイアウト**特有の事情です。
+Pythonインタプリタはカレントディレクトリを`sys.path`の先頭に入れるため、リポジトリルートで`python -m pkg`と叩くと、install前のソースツリーがそのままimportされ、dist-infoだけ無い状態でコードに到達してしまいます。
+
+これに対する構造的なガードが`src`レイアウト(パッケージを`src/pkg/`に置く配置)です。
+[Python Packaging User Guideの "src layout vs flat layout"](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/)はこの違いをこう述べています:
+
+> The src layout requires installation of the project to be able to run its code, and the flat layout does not.
+
+理由はカレントディレクトリのimport優先にあり、同ガイドは続けてこう説明します:
+
+> This is relevant since the Python interpreter includes the current working directory as the first item on the import path. This means that if an import package exists in the current working directory with the same name as an installed import package, the variant from the current working directory will be used.
+
+`src`レイアウトは「import対象を**リポジトリルートと別ディレクトリ**に隔離し、必ずinstall済みコピーが使われるようにする」ことでこれを防ぎます(同ガイド: "keeping import packages in a directory separate from the root directory of the project, ensuring that the installed copy is used")。
+この主張の原典としてよく参照されるのが[Hynek Schlawackの "Testing & Packaging" (2015)](https://hynek.me/articles/testing-packaging/)で、テストがinstall後の姿に対して走らない問題を指摘し、
+
+> If you use the ad hoc layout without an `src` directory, your tests do not run against the package as it will be installed by its users.
+
+コードを「**import不能な**別ディレクトリ」に隔離することを勧めています(同記事: "isolating the code into a separate – _un-importable_ – directory might be a good idea")。
+本来の主目的はリソース同梱漏れなどの**梱包バグの早期発見**ですが、副次的に「install前のソースツリー直叩き」という`PackageNotFoundError`経路そのものを*事故としては*塞ぎます。
+
+ここで上の表の`PYTHONPATH=src python -m pkg`という書き方の意味がはっきりします。
+`src`レイアウトでは素の`python -m pkg`はそもそもimportに失敗する(`src/`がパス上に無い)ので、`PackageNotFoundError`以前で止まります。
+`PYTHONPATH=src`は、その`src/`を**手でimportパスに載せ直して**、`src`レイアウトが立てたガードをバイパスし、「import可能だがinstallされていない」状態を意図的に再現しているわけです。
+つまり`src`レイアウトはこのエラーを**不能化するわけではなく**、*偶発的に踏む経路*を消すだけで、`PYTHONPATH`注入のように意図的に柵を越えれば同じ崖に行き着きます。
+
+実装の選択肢としては「fallbackを足す/足さない」の二択ではなく、「**`src`レイアウトに移して事故経路を構造的に消す**」という第三の道もある、ということです。
+ただしこれは梱包の正しさという独自の動機で採否を決めるべきパッケージ構成の判断で、`--version`のクラッシュ防止はあくまで副産物です。
+「未installのソースツリー実行をサポート対象とするか」という運用判断の代わりにはなりません。
+
 ## 動的バージョニングを使っている場合
 
 `setuptools-scm`/`hatch-vcs`等でgitタグからバージョンを生成する構成でも、ビルド後のdist-infoには確定バージョンが焼かれています。
