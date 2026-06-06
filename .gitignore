@@ -1,7 +1,5 @@
 node_modules
 .DS_Store
 .vscode
-package-lock.json
-package.json
-/programs/intro-kak-decomposition/__pycache__
-/programs/intro-kak-decomposition/uv.lock
+**/__pycache__
+**/uv.lock
