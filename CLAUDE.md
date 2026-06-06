@@ -40,6 +40,7 @@ published: false       # true=公開 / false=下書き
 - プレゼン: 初出のOSS・ツールは公式GitHub/ランディングにリンク。一般的でないが説明するほどでない専門用語は権威あるリンク（Wikipedia等）を張る。記事の核心となる用語はリンクで済ませず分野・意味・注目される理由を説明する。専門家前提の導入を避け、非専門家が追える足場を置く。詳細は `japanese-writing` skill。
 - **用語・表記（英単語/カタカナ/人名由来テクニカルターム）は [`GLOSSARY.md`](./GLOSSARY.md) に従う。**
 - **表記ゆれ・用字（しくみ⇔仕組み 等）は textlint で機械的に統制する**（`npm run lint:text` / `npm run lint:text:fix`）。表記辞書は `prh.yml`、設定は `.textlintrc.json`。数の漢字／算用数字の選択は語彙化依存（三角形は漢字・65537角形は算用）で機械化に向かないため、`arabic-kanji-numbers` は無効化し書き手判断とする。意味的な用語判断は GLOSSARY、機械的な表記ゆれは textlint、と役割を分ける。
+- **埋め込みバレットパターンの局所disable**: 「intro行＋箇条書き＋末尾`。`」で1文を成す書き方（例: `内側のエラーは` / `- A` / `- B` / `…のどちらか一方です。`）は日本語として正当だが、`ja-no-mixed-period` はリストをまたぐ continuation を認識せず intro行を「`。`止めでない文」として警告する。導入済みの `textlint-filter-rule-comments`（`.textlintrc.json` の `filters.comments: true`）で、該当範囲を `<!-- textlint-disable ja-technical-writing/ja-no-mixed-period -->` … `<!-- textlint-enable ja-technical-writing/ja-no-mixed-period -->` で囲んで黙らせる。disable は埋め込みリストを保ちたいときに限り、文として素直に閉じられる場面（出力ブロックのラベル等）は `。` で閉じる。
 - **pre-commit フック**（husky + lint-staged）が、コミット時にステージ済み `articles/**/*.md` を `textlint --fix` で自動修正・再ステージする（**autofix-only**。`textlint --fix` は常に exit 0 なので構造エラーでは止めない。doubled-joshi 等の構造面は skill 監査レーン／手動 `lint:text` でケア）。止めたくない・スキップしたいときは lazygit の `w` キー、またはメッセージ頭に `WIP`（lazygit の `skipHookPrefix` が `--no-verify` に翻訳）、または `git commit --no-verify`。生の `git commit -m "WIP..."` は lazygit 経由でないとスキップされない点に注意。
 
 ## Zenn Markdown記法
