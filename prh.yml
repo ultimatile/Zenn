@@ -1,0 +1,12 @@
+version: 1
+
+# 用字・表記ゆれの統一辞書（house policy）。
+# textlint が検出し、`--fix` で自動修正できる。
+# 方向が割れる語は GLOSSARY と同じく propose-and-confirm で確定してから追加する。
+# 用字の原則: 形式名詞（こと・もの・とき・ところ・ため 等の抽象用法）はかな、
+#             実質名詞（仕組み・場合 等）は漢字。
+
+rules:
+  # 実質名詞は漢字に統一する（標準デフォルト。かな寄せにするなら expected/pattern を入れ替える）
+  - expected: 仕組み
+    pattern: しくみ

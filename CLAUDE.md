@@ -39,6 +39,8 @@ published: false       # true=公開 / false=下書き
 - イタリック `*…*` は日本語の強調に使わない（日本語に斜体強調の慣習が無い）。英単語に当てるのは文法上可だが用途は限定的。画像直後の `*キャプション*` はキャプション構文なので対象外。
 - プレゼン: 初出のOSS・ツールは公式GitHub/ランディングにリンク。一般的でないが説明するほどでない専門用語は権威あるリンク（Wikipedia等）を張る。記事の核心となる用語はリンクで済ませず分野・意味・注目される理由を説明する。専門家前提の導入を避け、非専門家が追える足場を置く。詳細は `japanese-writing` skill。
 - **用語・表記（英単語/カタカナ/人名由来テクニカルターム）は [`GLOSSARY.md`](./GLOSSARY.md) に従う。**
+- **表記ゆれ・用字（しくみ⇔仕組み 等）は textlint で機械的に統制する**（`npm run lint:text` / `npm run lint:text:fix`）。表記辞書は `prh.yml`、設定は `.textlintrc.json`。数の漢字／算用数字の選択は語彙化依存（三角形は漢字・65537角形は算用）で機械化に向かないため、`arabic-kanji-numbers` は無効化し書き手判断とする。意味的な用語判断は GLOSSARY、機械的な表記ゆれは textlint、と役割を分ける。
+- **pre-commit フック**（husky + lint-staged）が、コミット時にステージ済み `articles/**/*.md` を `textlint --fix` で自動修正・再ステージする（**autofix-only**。`textlint --fix` は常に exit 0 なので構造エラーでは止めない。doubled-joshi 等の構造面は skill 監査レーン／手動 `lint:text` でケア）。止めたくない・スキップしたいときは lazygit の `w` キー、またはメッセージ頭に `WIP`（lazygit の `skipHookPrefix` が `--no-verify` に翻訳）、または `git commit --no-verify`。生の `git commit -m "WIP..."` は lazygit 経由でないとスキップされない点に注意。
 
 ## Zenn Markdown記法
 
