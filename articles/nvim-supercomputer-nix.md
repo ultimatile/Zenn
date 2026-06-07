@@ -20,7 +20,7 @@ published: false
 - `/home`が[Lustre](https://www.lustre.org/)等の並列ファイルシステムへのシンボリックリンクになっている
 - ディスク・inodeの制限が厳しい
 
-一方でNixは、パッケージを`/nix/store`以下に置くことを強く前提にします。ストアパスのハッシュにはストアディレクトリの場所そのものが含まれるため、ストアを`/nix/store`以外に置くと公式バイナリキャッシュ（`cache.nixos.org`）のビルド済みパッケージが一切ヒットしなくなり、すべてローカルビルドに落ちます。つまり「`/nix/store`を使えること」がNixの旨味の前提であり、ここがroot無し・シンボリックリンク・容量制限と正面衝突します。
+一方でNixは、パッケージを`/nix/store`以下に置くことを強く前提にします。ストアパスのハッシュには論理的なストアディレクトリの場所そのものが含まれるため、論理ストアを`/nix/store`以外にすると公式バイナリキャッシュ（`cache.nixos.org`）のビルド済みパッケージが一切ヒットしなくなり、すべてローカルビルドに落ちます。つまり「Nixから見て`/nix/store`を使えること」がNixの旨味の前提であり、ここがroot無し・シンボリックリンク・容量制限と正面衝突します。
 
 ### 選択肢
 
@@ -30,7 +30,7 @@ published: false
 2. コンテナのエントリポイント。[Apptainer](https://apptainer.org/) / [SingularityCE](https://github.com/sylabs/singularity)（旧Singularity）は、管理者がsetuidで入れてくれているマウント名前空間の供給源として使える。`/nix/store`ごとイメージに焼けば計算ノードでも動く。
 3. proot。[nix-portable](https://github.com/DavHau/nix-portable)はユーザー名前空間もrootも要らず、ptraceでパスを書き換える。ユーザー名前空間が無い環境でも動く反面、ビルドのような処理では壊れやすい。
 
-実際には権限の低い方から試しました。まず素のNixで、`NIX_STORE_DIR`を使ってストアを`~/nix/store`に移そうとしました。しかし背景で述べたストアパス問題（ストアパスがずれてバイナリキャッシュが効かなくなる）に阻まれました。次にnix-portableを試しましたが、私の環境では動きませんでした。コンテナ（SingularityCE）は動いたものの、nvimを起動するたびにコンテナを起動するのは面倒です。最終的にnix-user-chrootで落ち着きました。以下ではnix-user-chroot経由でnvimをインストールします。
+実際には権限の低い方から試しました。まず素のNixで、`NIX_STORE_DIR`を使ってストアパスを`~/nix/store`に指定しようとしましたがパスの解決がうまくいきませんでした。今思うと後述の拡張属性剥がしの問題だったのかもしれません。次にnix-portableを試しましたが、私の環境では動きませんでした。コンテナ（SingularityCE）を試したところ無事に動いたものの、nvimを起動するたびにコンテナを起動するのは面倒です。最終的にnix-user-chrootで落ち着きました。以下ではnix-user-chroot経由でnvimをインストールします。
 
 [^revival]: nix-user-chrootは2023年から2026年にかけてREADMEで「unmaintained、nix-portableを試せ」と案内されていましたが、[2026年3月にその記述が外れて再びメンテされています](https://github.com/nix-community/nix-user-chroot/commit/5e414dff108eb3e4f671c352c17ad5ad36dea868)。以前見たときは前者の状態で、選択肢から外していました。
 
@@ -54,7 +54,7 @@ unshare --user --pid echo YES
 
 `YES`が出れば使えます。`Operation not permitted`等で落ちれば無効で、その場合はproot（nix-portable）を使うことになります。 無効化されているかはsysctlの`user.max_user_namespaces`（RHEL系）や`kernel.unprivileged_userns_clone`（Debian系）でも確認できます。
 
-私の環境では`YES`が返り、ユーザー名前空間は制限なく使えました。
+私の環境では`YES`が返り、少なくともnix-user-chrootに必要な範囲ではユーザー名前空間を使えました。
 
 ### nix-user-chrootをビルドする
 
@@ -80,13 +80,19 @@ cargo build --release --offline
 
 依存は取得済みなので`--offline`なしでもビルドできました。とはいえ、ネットに出ないことの保証として`--offline`を付けておくと行儀がよいでしょう。出来上がったバイナリは`target/release/nix-user-chroot`です。
 
+:::message
+
+以下で`nix-user-chroot`と書いているところは、以降このバイナリを指しており、フルパスを省略して書いてますので注意してください。
+
+:::
+
 ### Nixをインストールする
 
 用意したnix-user-chrootを使い、ストアにするディレクトリを作って、その中でNix公式インストーラを単一ユーザーモードで走らせます。
 
 ```bash
 mkdir -m 0755 ~/.nix
-./nix-user-chroot ~/.nix bash -c "curl -L https://nixos.org/nix/install | bash"
+nix-user-chroot ~/.nix bash -c "curl -L https://nixos.org/nix/install | bash"
 ```
 
 ここから関門が3つ続きました。
@@ -99,15 +105,15 @@ mkdir -m 0755 ~/.nix
 nix-store: /lustre/opt/.../gcc/13.2.0/lib64/libstdc++.so.6: version `CXXABI_1.3.15' not found
 ```
 
-スパコンのmoduleが読み込んでいる古いGCCのlibstdc++を、`LD_LIBRARY_PATH`経由で掴んでしまうのが原因です。`LD_LIBRARY_PATH`はELFのRUNPATHより優先されるため、Nix自前の新しいlibstdc++が上書きされてしまいます。対処は2通りあり、どちらか一方で十分です。そのコマンドだけ`LD_LIBRARY_PATH`を空にするか、`module purge`でモジュール環境をクリアします。
+スパコンの[environment module](https://modules.readthedocs.io/en/latest/)が読み込んでいる古いGCCのlibstdc++を、`LD_LIBRARY_PATH`経由で掴んでしまうのが原因です。Nix配布バイナリのようにRUNPATHで依存ライブラリを指しているELFでは、`LD_LIBRARY_PATH`がRUNPATHより優先されるため、Nix自前の新しいlibstdc++が上書きされてしまいます。対処は2通りあり、そのコマンドだけ`LD_LIBRARY_PATH`を空にするか、`module purge`でモジュール環境をクリアします。
 
 ```bash
-LD_LIBRARY_PATH= ./nix-user-chroot ~/.nix bash -c "curl -L https://nixos.org/nix/install | bash"
+LD_LIBRARY_PATH= nix-user-chroot ~/.nix bash -c "curl -L https://nixos.org/nix/install | bash"
 ```
 
 :::message alert
 
-`module purge`のし忘れは共同利用スパコンでありがちです。この`LD_LIBRARY_PATH`周りは、踏むと厄介な地雷です。システムと非互換なlibc / libstdc++を指したまま`LD_LIBRARY_PATH`を固定すると、システム側のコマンドがABI不一致で軒並み起動できなくなります。これを`.bashrc`などのシェル起動ファイルへ書き込むと、ログインのたびに環境が壊れます。修正用のエディタすら起動できず、通常のログインシェルからは手が出せなくなります。復旧は、壊れた起動ファイルを読み込まない経路から行います。`scp`や`sftp`で正常な起動ファイルを上書きする（ファイル転送はインタラクティブシェルの起動ファイルを読まないため、壊れた環境の影響を受けません）か、`ssh <host> -t 'bash --norc --noprofile'`でクリーンなシェルに入って直すとよいでしょう。
+`module purge`のし忘れは共同利用スパコンでありがちですが、この`LD_LIBRARY_PATH`周りは、踏むと厄介な地雷です。システムと非互換なlibc / libstdc++を指したまま`LD_LIBRARY_PATH`を固定すると、システム側のコマンドがABI不一致で軒並み起動できなくなります。これを`.bashrc`などのシェル起動ファイルへ書き込むと、ログインのたびに環境が壊れます。修正用のエディタすら起動できず、通常のログインシェルからは手が出せなくなります。復旧は、壊れた起動ファイルを読み込まない経路から行います。`scp`や`sftp`で正常な起動ファイルを上書きする（ファイル転送はインタラクティブシェルの起動ファイルを読まないため、壊れた環境の影響を受けません）か、`ssh <host> -t 'bash --norc --noprofile'`でクリーンなシェルに入って直すとよいでしょう。
 
 :::
 
@@ -119,15 +125,15 @@ LD_LIBRARY_PATH= ./nix-user-chroot ~/.nix bash -c "curl -L https://nixos.org/nix
 error: removing extended attribute 'lustre.lov' from "...": Permission denied
 ```
 
-Lustreは全ファイルにストライプ配置情報の拡張属性`lustre.lov`を付けますが、これは非rootユーザーには削除できません。一方でNixは、ストアにパスを書き込むたびに正規化を行い、その一環で拡張属性をすべて剥がそうとします。そこで`lustre.lov`の削除が`Permission denied`で失敗します。
+私の環境のLustre上では、ストアに入るファイルにストライプ配置情報の拡張属性`lustre.lov`が付いており、これは非rootユーザーには削除できません。一方でNixは、ストアにパスを書き込むたびに正規化を行い、その一環で拡張属性を剥がそうとします。そこで`lustre.lov`の削除が`Permission denied`で失敗します。
 
-nix.confの`ignored-acls`に`lustre.lov`を足すと、Nixはこの属性を削除しようとせず無視します。
+nix.confの[`ignored-acls`](https://nix.dev/manual/nix/2.34/command-ref/conf-file.html#conf-ignored-acls)に`lustre.lov`を足すと、Nixはこの属性を削除しようとせず無視します。
 
 ```:~/.config/nix/nix.conf
 ignored-acls = security.csm security.selinux system.nfs4_acl lustre.lov
 ```
 
-デフォルトは`security.csm security.selinux system.nfs4_acl`で、NFSの`system.nfs4_acl`で同種の問題が出るのと同じ枠です。ストアパスのハッシュ計算（NAR）は拡張属性を含まないため、`lustre.lov`を残してもストアパスやキャッシュ互換性に影響しません。おかげでストアをLustre上のホームに置いたまま回避できました。
+デフォルトは`security.csm security.selinux system.nfs4_acl`で、NFSの`system.nfs4_acl`で同種の問題が出るのと同じ枠です。NARとしてシリアライズされる内容には拡張属性が入らないため、`lustre.lov`を無視してもNixは動きます。おかげでストアをLustre上のホームに置いたまま回避できました。
 
 参考: <https://github.com/NixOS/nixpkgs/issues/29778>
 
@@ -141,9 +147,10 @@ error (ignored): writing packfile: -1, unable to create thread
 Segmentation fault
 ```
 
-flake経路はnixpkgsをlibgit2ベースのGitキャッシュに取り込みます。libgit2はパック処理をCPUコア数ぶんのスレッドで行うことがあり、ログインノードのスレッド・プロセス上限を超えてスレッド生成に失敗したとみられます。そのままSIGSEGVに至りました。
+flake経路はnixpkgsをlibgit2ベースのGitキャッシュに取り込みます。`writing packfile`と`unable to create thread`というメッセージから、libgit2のpackfile生成中にスレッド作成へ失敗した症状と整合します。私の環境では、ログインノード側のプロセス・スレッド数上限やメモリ制限に当たった可能性が高いと見ています。
 
 flakeを避けてチャンネル経由（`nix-env`）で入れると、libgit2のGitキャッシュを通らないためこの問題を踏みません。
+実際こちらは問題なく入りました。
 
 ```bash
 nix-channel --update nixpkgs
@@ -157,10 +164,11 @@ nix-env -iA nixpkgs.neovim
 nvimとその依存は`/nix/store`以下にあり、その`/nix`はnix-user-chrootが張る名前空間の中だけに存在します。そのためnvimは常にnix-user-chroot越しに起動します。毎回打つのは面倒なので、シェルにラッパーを置くと楽です。
 
 ```bash
-nvim() { LD_LIBRARY_PATH= ~/path/to/nix-user-chroot ~/.nix ~/.nix-profile/bin/nvim "$@"; }
+nvim() { LD_LIBRARY_PATH= /path/to/nix-user-chroot ~/.nix ~/.nix-profile/bin/nvim "$@"; }
 ```
 
 `LD_LIBRARY_PATH`を空にしているのは関門1と同じ理由で、nvimの依存が古いシステムライブラリを掴むのを防ぐためです。
+`/path/to/nix-user-chroot`はビルド・インストールしたバイナリのパスに置き換えてください。
 
 ## まとめ
 
