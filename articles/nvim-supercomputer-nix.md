@@ -6,9 +6,11 @@ topics: ["nix", "nvim", "hpc"]
 published: false
 ---
 
+## はじめに
+
 共同利用スパコンでNeovimを使いたかったのですが、普通には入りません。[Nix](https://nixos.org)で入れようとしたところ関門が連続しましたが、最終的に[nix-user-chroot](https://github.com/nix-community/nix-user-chroot)経由で動きました。その経緯の記録です。
 
-## 背景: スパコンの開発環境とNixの相性の悪さ
+### 背景: スパコンの開発環境とNixの相性の悪さ
 
 共同利用スパコンには制約が多くあります。
 
@@ -20,7 +22,7 @@ published: false
 
 一方でNixは、パッケージを`/nix/store`以下に置くことを強く前提にします。ストアパスのハッシュにはストアディレクトリの場所そのものが含まれるため、ストアを`/nix/store`以外に置くと公式バイナリキャッシュ（`cache.nixos.org`）のビルド済みパッケージが一切ヒットしなくなり、すべてローカルビルドに落ちます。つまり「`/nix/store`を使えること」がNixの旨味の前提であり、ここがroot無し・シンボリックリンク・容量制限と正面衝突します。
 
-## 選択肢
+### 選択肢
 
 やりたいのは、ストアを`/nix/store`という正規パスで使えるようにすることです。`/nix`を実際に用意できるなら、それが一番素直です。普通のNixユーザーが通る道でもあります。ただ共同利用スパコンでは、管理者の協力（`/nix`を作ってもらう、共有ファイルシステムを`/nix`にマウントして全ノードで共有する、非特権ユーザー名前空間を有効化してもらう、など）が要り、普通通りません。できない場合は、別の場所のストアを`/nix/store`に見せかけるしかありません。その手段は、必要な権限の高い順に次の3つです。
 
@@ -32,7 +34,7 @@ published: false
 
 [^revival]: nix-user-chrootは2023年から2026年にかけてREADMEで「unmaintained、nix-portableを試せ」と案内されていましたが、[2026年3月にその記述が外れて再びメンテされています](https://github.com/nix-community/nix-user-chroot/commit/5e414dff108eb3e4f671c352c17ad5ad36dea868)。以前見たときは前者の状態で、選択肢から外していました。
 
-## 実践例
+## 実際にやったこと
 
 :::message
 
@@ -126,6 +128,8 @@ ignored-acls = security.csm security.selinux system.nfs4_acl lustre.lov
 ```
 
 デフォルトは`security.csm security.selinux system.nfs4_acl`で、NFSの`system.nfs4_acl`で同種の問題が出るのと同じ枠です。ストアパスのハッシュ計算（NAR）は拡張属性を含まないため、`lustre.lov`を残してもストアパスやキャッシュ互換性に影響しません。おかげでストアをLustre上のホームに置いたまま回避できました。
+
+参考: <https://github.com/NixOS/nixpkgs/issues/29778>
 
 ### 関門3: flakeが使えない（libgit2がスレッドを作れず落ちる）
 
