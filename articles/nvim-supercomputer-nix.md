@@ -10,17 +10,25 @@ published: true
 
 共同利用スパコンでNeovimを使いたかったのですが、普通には入りません。[Nix](https://nixos.org)で入れようとしたところ関門が連続しましたが、最終的に[nix-user-chroot](https://github.com/nix-community/nix-user-chroot)経由で動きました。その経緯の記録です。
 
-### 背景: スパコンの開発環境とNixの相性の悪さ
+### 背景: スパコンの開発環境とNix
 
-共同利用スパコンには制約が多くあります。
+共同利用スパコンでソフトウェアを使う典型的な仕組みが[environment module](https://modules.readthedocs.io/en/latest/)です。`module load`コマンドでコンパイラやライブラリのバージョンを選ぶと、`LD_LIBRARY_PATH`や`PATH`といったグローバルな環境変数が切り替わります。数値計算のスタックをプロジェクト単位で管理するために使用されています。
+
+問題は、エディタのような汎用ツールまでこのグローバル環境に巻き込まれることです。nvimの依存をmoduleで用意すると、その`LD_LIBRARY_PATH`の差し替えが、本来動かしたい計算側のライブラリ解決を揺さぶります。逆に計算用のmoduleを読んだ状態では、nvimが別バージョンのライブラリを掴んで動かなくなります。「nvimを起動するためにmoduleを読み直す」のは筋が悪く、根本的にはenvironment moduleがグローバル環境を握っていることに行き当たります。
+
+Nixはここを断ち切ります。各パッケージは依存を`/nix/store`以下のフルパスで固定します。ELFバイナリでは、RUNPATHが自分の依存（`/nix/store`内）だけを指します。そのため、moduleで環境を整えなくてもnvimが動きます。各ツールが自分の依存を閉じて持ち、moduleに手を触れずに動かせること、これがスパコンでNixを使う旨味です。
+
+ただし、その`/nix/store`が後で効いてきます。Nixのストアには、ハッシュやRUNPATHに焼き込まれる論理パス（既定で`/nix/store`）と、実体を置く物理的な場所の二つの面があり、実体は`/nix/store`の外にも置けます。論理パスを`/nix/store`からずらすと`cache.nixos.org`のビルド済みパッケージとハッシュが合わず、すべてローカルビルドに落ちます。nvimを入れるだけなら、一度待てば済む話に見えるかもしれません。しかしNixを汎用のパッケージマネージャとして使い始めると、あらゆる依存をフルスクラッチで積み続けることになり、さすがに正気とは思えません。したがって論理ストアは`/nix/store`に固定しておくのが筋です。
+
+前提として、スパコンは役割の異なる2種類のノードから構成されることが多いです。ログインノードはSSHで最初に入る共用の作業ノードで、多くのユーザーで共有します。計算ノードは[Slurm](https://slurm.schedmd.com/)などのジョブスケジューラ経由で確保し、実際の計算を流すノードです。これらの上で、次の制約がかかります。
 
 - root権限が無い
-- ログインノードで重い処理は禁止（共用のため）
+- ログインノードで重い処理は禁止（共用のため）。ビルドも計算ノードで行うことが望ましい。
 - 計算ノードからインターネットに出られない
 - `/home`が[Lustre](https://www.lustre.org/)等の並列ファイルシステムへのシンボリックリンクになっている
 - ディスク・inodeの制限が厳しい
 
-一方でNixは、パッケージを`/nix/store`以下に置くことを強く前提にします。ストアパスのハッシュには論理的なストアディレクトリの場所そのものが含まれるため、論理ストアを`/nix/store`以外にすると公式バイナリキャッシュ（`cache.nixos.org`）のビルド済みパッケージが一切ヒットしなくなり、すべてローカルビルドに落ちます。つまり「Nixから見て`/nix/store`を使えること」がNixの旨味の前提であり、ここがroot無し・シンボリックリンク・容量制限と正面衝突します。
+実体は`/nix/store`の外に置ける一方、論理パスを`/nix/store`に保つには、その実体を実行時に`/nix/store`として見せる必要があります。この「`/nix`を用意する」一点が、root無し・シンボリックリンク・容量制限と正面衝突します。
 
 ### 選択肢
 
@@ -30,7 +38,7 @@ published: true
 2. コンテナのエントリポイント。[Apptainer](https://apptainer.org/) / [SingularityCE](https://github.com/sylabs/singularity)（旧Singularity）は、管理者がsetuidで入れてくれているマウント名前空間の供給源として使える。`/nix/store`ごとイメージに焼けば計算ノードでも動く。
 3. proot。[nix-portable](https://github.com/DavHau/nix-portable)はユーザー名前空間もrootも要らず、ptraceでパスを書き換える。ユーザー名前空間が無い環境でも動く反面、ビルドのような処理では壊れやすい。
 
-実際には権限の低い方から試しました。まず素のNixで、`NIX_STORE_DIR`を使ってストアパスを`~/nix/store`に指定しようとしましたがパスの解決がうまくいきませんでした。今思うと後述の拡張属性剥がしの問題だったのかもしれません。次にnix-portableを試しましたが、私の環境では動きませんでした。コンテナ（SingularityCE）を試したところ無事に動いたものの、nvimを起動するたびにコンテナを起動するのは面倒です。最終的にnix-user-chrootで落ち着きました。以下ではnix-user-chroot経由でnvimをインストールします。
+実際には権限の低い方から試しました。まず素のNixで、`NIX_STORE_DIR`を使ってストアパスを`~/nix/store`に指定しようとしましたがパスの解決がうまくいきませんでした。今思うと後述の拡張属性剥がしの問題だったのかもしれません。だとすると、拡張属性を片付ければ非標準の論理ストアでも済んだ可能性はありますが、未検証です。次にnix-portableを試しましたが、私の環境では動きませんでした。コンテナ（SingularityCE）を試したところ無事に動いたものの、nvimを起動するたびにコンテナを起動するのは面倒です。最終的にnix-user-chrootで落ち着きました。以下ではnix-user-chroot経由でnvimをインストールします。
 
 [^revival]: nix-user-chrootは2023年から2026年にかけてREADMEで「unmaintained、nix-portableを試せ」と案内されていましたが、[2026年3月にその記述が外れて再びメンテされています](https://github.com/nix-community/nix-user-chroot/commit/5e414dff108eb3e4f671c352c17ad5ad36dea868)。以前見たときは前者の状態で、選択肢から外していました。
 
@@ -149,7 +157,7 @@ Segmentation fault
 
 flake経路はnixpkgsをlibgit2ベースのGitキャッシュに取り込みます。`writing packfile`と`unable to create thread`というメッセージから、libgit2のpackfile生成中にスレッド作成へ失敗した症状と整合します。私の環境では、ログインノード側のプロセス・スレッド数上限やメモリ制限に当たった可能性が高いと見ています。
 
-flakeを避けてチャンネル経由（`nix-env`）で入れると、libgit2のGitキャッシュを通らないためこの問題を踏みません。
+flakeを避けてチャンネル経由（`nix-env`）で入れると、この問題を踏みません。チャンネルはnixpkgsをtarballとして取得・展開するので、flakeのlibgit2によるGit入力の更新とは別経路です。
 実際こちらは問題なく入りました。
 
 ```bash
@@ -164,11 +172,11 @@ nix-env -iA nixpkgs.neovim
 nvimとその依存は`/nix/store`以下にあり、その`/nix`はnix-user-chrootが張る名前空間の中だけに存在します。そのためnvimは常にnix-user-chroot越しに起動します。毎回打つのは面倒なので、シェルにラッパーを置くと楽です。
 
 ```bash
-nvim() { LD_LIBRARY_PATH= /path/to/nix-user-chroot ~/.nix ~/.nix-profile/bin/nvim "$@"; }
+nvim() { LD_LIBRARY_PATH= nix-user-chroot ~/.nix ~/.nix-profile/bin/nvim "$@"; }
 ```
 
-`LD_LIBRARY_PATH`を空にしているのは関門1と同じ理由で、nvimの依存が古いシステムライブラリを掴むのを防ぐためです。
-`/path/to/nix-user-chroot`はビルド・インストールしたバイナリのパスに置き換えてください。
+- `LD_LIBRARY_PATH=`で空にしているのは保険。`LD_LIBRARY_PATH`はRUNPATHより先に探索されるため、moduleが同じSONAMEの非互換ライブラリを積んでいると`/nix/store`の正規の依存より先に掴まれ得る（関門1と同じ探索順の問題）。空にせず動く環境もあるが、その時の`LD_LIBRARY_PATH`の中身次第なので、付けておくのが安全。
+- `nix-user-chroot`は前述のビルド済みバイナリ。PATHが通っていなければフルパスに読み替える。
 
 ## まとめ
 
