@@ -6,6 +6,7 @@
       "max-ten": false,
       "ja-no-weak-phrase": false,
       "arabic-kanji-numbers": false,
+      "no-mix-dearu-desumasu": false,
       "no-doubled-joshi": {
         "allow": ["も", "ても"]
       },

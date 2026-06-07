@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint:text": "textlint articles/**/*.md",
     "lint:text:fix": "textlint --fix articles/**/*.md",
+    "lint:register": "node scripts/lint-register.mjs",
     "prepare": "husky"
   },
   "repository": {
