@@ -16,9 +16,29 @@
     },
     "prh": {
       "rulePaths": ["./prh.yml"]
-    }
+    },
+    "ja-joyo-or-jinmeiyo-kanji": true
   },
   "filters": {
-    "comments": true
+    "comments": true,
+    "allowlist": {
+      "allow": [
+        "繋",
+        "閾",
+        "叩",
+        "乖",
+        "冪",
+        "梱",
+        "剥",
+        "掴",
+        "罠",
+        "牢",
+        "騙",
+        "舐",
+        "嵌",
+        "噛",
+        "嘘"
+      ]
+    }
   }
 }
