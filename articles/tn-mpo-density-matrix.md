@@ -12,12 +12,12 @@ published: false
 
 ここでは3手法のうち**密度行列法 (density-matrix method)** の中身を解説します。
 ターゲット $\ket{\varphi}$ の縮約密度行列を各カットで直接組んで対角化し、支配的固有ベクトルを新MPSテンソルにする、という手法です。
-3手法のなかでの位置づけ（精度は zip-up < 密度行列法 < variational fitting の中間、ただしMPOボンドが2乗で効くのが弱点）は入口記事にまとめてあります。
+3手法のなかでの位置づけ（精度は ジップアップ法 < 密度行列法 < 変分フィッティング法 の中間、ただしMPOボンドが2乗で効くのが弱点）は入口記事にまとめてあります。
 
 ### この手法のリファレンスについて
 
 最初に断っておくと、**密度行列法には専用の原論文がありません**。
-zip-upはStoudenmire–White [^stoudenmire2010]、variational fittingはVerstraete–Cirac [^verstraete2004] という出典がありますが、密度行列法はそうした「名前のついた論文」を持ちません。
+ジップアップ法はStoudenmire–White [^stoudenmire2010]、変分フィッティング法はVerstraete–Cirac [^verstraete2004] という出典がありますが、密度行列法はそうした「名前のついた論文」を持ちません。
 実体は、**WhiteのDMRGにおける密度行列切り捨て** [^white] を、ターゲット状態$\hat{W}\ket{\psi}$に対して適用しただけのものです。
 実務上のリファレンスは、ITensorの実装と、tensornetwork.orgの解説ページ [^tnorg] になります（後者は「Glen Evenbly・Steven R. White・Ian McCullochとの議論から生まれた」と謝辞に記すのみで、論文citationはありません）。
 
@@ -30,9 +30,9 @@ Schollwöckのレビュー [^schollwock2011] は「密度行列の対角化とSV
 
 [^schollwock2011]: U. Schollwöck, *The density-matrix renormalization group in the age of matrix product states*, *Ann. Phys.* **326**, 96 (2011), [arXiv:1008.3477](https://arxiv.org/abs/1008.3477). 「SVDと密度行列対角化の等価性」と圧縮の誤差評価（第4節）。
 
-[^stoudenmire2010]: E. M. Stoudenmire and S. R. White, *Minimally Entangled Typical Thermal State Algorithms*, *New J. Phys.* **12**, 055026 (2010), [arXiv:1002.1305](https://arxiv.org/abs/1002.1305). zip-upの原典。MMPの手法としてfit法（Verstraete–Cirac由来）とzip-upを論じています。
+[^stoudenmire2010]: E. M. Stoudenmire and S. R. White, *Minimally Entangled Typical Thermal State Algorithms*, *New J. Phys.* **12**, 055026 (2010), [arXiv:1002.1305](https://arxiv.org/abs/1002.1305). ジップアップ法の原典。MPO-MPS積の手法として変分フィッティング法（Verstraete–Cirac由来）とジップアップ法を論じています。
 
-[^verstraete2004]: variational fitting（$\ket{\varphi}$を$\hat W\ket{\psi}$にフィットして$\| \ket{\varphi} - \hat W\ket{\psi}\|^2$を最小化する手法）は、Stoudenmire–White [^stoudenmire2010] が F. Verstraete・J. I. Cirac らの2004年の仕事（単一サイト版）に帰しています。正確な書誌は同論文の該当引用を参照してください。
+[^verstraete2004]: 変分フィッティング法（$\ket{\varphi}$を$\hat W\ket{\psi}$にフィットして$\| \ket{\varphi} - \hat W\ket{\psi}\|^2$を最小化する手法）は、Stoudenmire–White [^stoudenmire2010] が F. Verstraete・J. I. Cirac らの2004年の仕事（単一サイト版）に帰しています。正確な書誌は同論文の該当引用を参照してください。
 
 [^paeckel2019]: S. Paeckel, T. Köhler, A. Swoboda, S. R. Manmana, U. Schollwöck, C. Hubig, *Time-evolution methods for matrix-product states*, *Ann. Phys.* **411**, 167998 (2019), [arXiv:1901.05824](https://arxiv.org/abs/1901.05824). MPO適用節はdirect/variational/zip-upの3手法を比較しています。
 
@@ -49,7 +49,7 @@ $$
 入口記事の「最適切り捨ての基礎」のとおり、状態をあるカットで左右に分けたとき、左ブロックの簡約密度行列 $\rho = \mathrm{Tr}_\text{右}\ket{\varphi}\bra{\varphi}$ の支配的な $D'_\text{MPS}$ 個の固有ベクトルが、そのカットでの2-ノルム最適な切り捨て基底を与えます。
 誤差は捨てた固有値の和で $\| \ket{\varphi} - \ket{\tilde{\varphi}} \|^2 \le 2 \sum_{i} \epsilon_i$ と抑えられます[^schollwock2011]。
 
-密度行列法は、この「$\rho$ の支配的固有ベクトルを残す」操作を、$\ket{\varphi} = \hat{W}\ket{\psi}$ を陽に組み立てずに実行します。
+密度行列法は、この「$\rho$ の支配的固有ベクトルを残す」操作を、$\ket{\varphi} = \hat{W}\ket{\psi}$ を陽に組み立てることなく実行します。
 
 ## アイデア：$\hat{W}\ket{\psi}$の縮約密度行列を直接対角化する
 
@@ -61,7 +61,7 @@ $$
 tensornetwork.orgの言葉では「MPO-MPS積とそのエルミート共役の partial trace」[^tnorg]。
 このため$\rho$を組む縮約には、ketのMPOボンド$b'$とbraのMPOボンド$\tilde{b}'$が独立に現れ、**MPOボンドが2乗で効きます**。これが計算量の弱点の根です（後述）。
 
-逆に、$\rho$は$\ket{\varphi}$**そのものの**性質（ゲージに依らない）なので、zip-upと違って**入力MPSを特定の標準形に揃える必要がありません**。各カットで厳密な$\rho$を組んで対角化する以上、得られる切り捨てはそのカットで厳密に最適です。
+逆に、$\rho$は$\ket{\varphi}$**そのものの**性質（ゲージに依らない）なので、ジップアップ法と違って**入力MPSを特定の標準形に揃える必要がありません**。各カットで厳密な$\rho$を組んで対角化する以上、得られる切り捨てはそのカットで厳密に最適です。
 
 ## アルゴリズム詳細
 
@@ -164,12 +164,12 @@ $\Psi$をSVDすると、その左特異ベクトル$U$が$\rho_A = \Psi\Psi^\dag
 得られる切り捨て自体は$\ket{\varphi} = \hat{W}\ket{\psi}$に対する最適なSVD切り捨てと同じで、それを「$\Psi$を直接SVDするのではなく、$\rho$を組んで対角化する」経路で実行しているだけ。
 この経路を取る積極的な理由は、次節以降の「厳密な右環境を組み込める」「複数項を合算できる」点にあります。
 
-ではzip-upと何が違うのか。
+ではジップアップ法と何が違うのか。
 
-- **zip-up**は局所テンソル$C^{[s]}$（持ち越し$R_{s-1}$と$A^{[s]}, W^{[s]}$の縮約）をSVDします。右側の厳密な環境は入っておらず、入力の右標準形性を前提にした**局所近似**です。
+- **ジップアップ法**は局所テンソル$C^{[s]}$（持ち越し$R_{s-1}$と$A^{[s]}, W^{[s]}$の縮約）をSVDします。右側の厳密な環境は入っておらず、入力の右標準形性を前提にした**局所近似**です。
 - **密度行列法**は右環境$G^{[s]}$（右ブロックの厳密なGram）を組み込んだ$\rho^{[s]}$を対角化します。つまり**そのカットでの$\ket{\varphi}$の厳密な簡約密度行列**を対角化するので、切り捨てがそのカットで厳密に最適です。
 
-variational fittingとの違いは、**一回の掃引で済む**点（反復も初期値も不要）です。
+変分フィッティング法との違いは、**一回の掃引で済む**点（反復も初期値も不要）です。
 
 ## 計算量
 
@@ -177,7 +177,7 @@ variational fittingとの違いは、**一回の掃引で済む**点（反復も
 
 $G^{[s]}$は$(r, b', \tilde{r}, \tilde{b}')$の4脚で、サイズ$D_\text{MPS}^2 D_\text{MPO}^2$。
 これを右端から漸化式で更新するコストが、各サイトで支配的になります。
-$\hat{W}$がbra・ket双方に乗るので**$D_\text{MPO}^2$が立つ**のが本質的な特徴で、これがzip-up（$D_\text{MPO}$が主、$D_\text{MPO}^2$は副次項）やvariational fittingに対する明確な弱点です。
+$\hat{W}$がbra・ket双方に乗るので**$D_\text{MPO}^2$が立つ**。これは本質的な特徴で、ジップアップ法（$D_\text{MPO}$が主、$D_\text{MPO}^2$は副次項）や変分フィッティング法に対する明確な弱点です。
 最適な縮約順序は$D_\text{MPS}$と$D_\text{MPO}$の大小に依存します [^tnorg]。
 
 なお、tensornetwork.orgや上記レビューは密度行列法の閉じたコスト式を与えていないため、ここで$O(\cdots)$の確定値は主張しません。
@@ -185,10 +185,10 @@ $\hat{W}$がbra・ket双方に乗るので**$D_\text{MPO}^2$が立つ**のが本
 
 ## 精度
 
-- **各カットで右環境込みの最適**: 厳密な右環境を含む$\rho$を対角化するので、各カットの切り捨ては「すでに確定した左を所与として」2-ノルム最適。右環境を入れない局所近似のzip-upより精度が高い。
-- **大域的には準最適**: ただし一回の掃引で左を確定したら再最適化しないので、全ボンドを同時最適化する（収束した）variational fittingには及ばない。誤差は$2\sum_i \epsilon_i$で抑えられる準最適圧縮で、精度順序は zip-up < 密度行列法 < 収束 variational fitting。
-- **初期値・反復が不要**: variational fittingと違い一発で高品質な結果が出る。逆に、密度行列法の出力をvariational fittingの初期値にする、という併用も自然。
-- **標準形の前提が不要**: zip-upと違い、入力MPSを右標準形に揃える前処理が原理的に要らない（厳密な$\rho$を組むため）。
+- **各カットで右環境込みの最適**: 厳密な右環境を含む$\rho$を対角化するので、各カットの切り捨ては「すでに確定した左を所与として」2-ノルム最適。右環境を入れない局所近似のジップアップ法より精度が高い。
+- **大域的には準最適**: ただし一回の掃引で左を確定したら再最適化しないので、全ボンドを同時最適化する（収束した）変分フィッティング法には及ばない。誤差は$2\sum_i \epsilon_i$で抑えられる準最適圧縮になる。精度順序は ジップアップ法 < 密度行列法 < 収束した変分フィッティング法。
+- **初期値・反復が不要**: 変分フィッティング法と違い一発で高品質な結果が出る。逆に、密度行列法の出力を変分フィッティング法の初期値にする、という併用も自然。
+- **標準形の前提が不要**: ジップアップ法と違い、入力MPSを右標準形に揃える前処理が原理的に要らない（厳密な$\rho$を組むため）。
 
 ## 実装上の注意点
 
@@ -213,23 +213,23 @@ $$
 
 ### 対称性付きMPSとの相性
 
-対称性を組み込んだMPS（[Abelian対称性テンソルの記事](https://zenn.dev/ultimatile/articles/intro-abelian-symmetric-tensor)）では、$\rho^{[s]}$がチャージごとにブロック対角になり、固有値分解を各チャージブロックで独立に走らせれば軽くなります。
+対称性を組み込んだMPS（[Abelian対称性テンソルの記事](https://zenn.dev/ultimatile/articles/intro-abelian-symmetric-tensor)）では、$\rho^{[s]}$がチャージごとにブロック対角化され、固有値分解を各チャージブロックで独立に走らせれば軽くなります。
 
 ### いつ密度行列法を選ぶか
 
-$D_\text{MPO}^2$のコストがあるため、単純な「速いMMP」が欲しいだけならzip-upが有利です。
+$D_\text{MPO}^2$のコストがあるため、単純な「速いMPO-MPS積」が欲しいだけならジップアップ法が有利です。
 密度行列法が効くのは、**精度を一発で取りに行きたい**とき、**標準形の前処理を避けたい**とき、あるいは**複数項を一括圧縮したい**ときです。
 
 ## まとめ
 
 整理しなおすと：
 
-1. **問題**: $\hat{W}\ket{\psi}$をボンド次元$D'_\text{MPS}$のMPSで最良近似したい（zip-up・variational fittingと同じ問題）。
+1. **問題**: $\hat{W}\ket{\psi}$をボンド次元$D'_\text{MPS}$のMPSで最良近似したい（ジップアップ法・変分フィッティング法と同じ問題）。
 2. **アイデア**: $\ket{\varphi} = \hat{W}\ket{\psi}$の簡約密度行列$\rho$を各カットで直接組み、支配的固有ベクトルを新MPSテンソルにする。$\hat{W}$がbra・ket両方に出る。
 3. **アルゴリズム**: 右環境$G^{[s]}$を用意し、$\rho^{[s]} = \Phi^{[s]} G^{[s]} \Phi^{[s]\dagger}$を対角化、上位$D'_\text{MPS}$固有ベクトル$=M^{[s]}$。
 4. **出自**: 専用論文は無い。WhiteのDMRG密度行列切り捨てを$\hat{W}\ket{\psi}$に適用したもので、密度行列対角化はSVD切り捨てと等価。実務リファレンスはITensorとtensornetwork.org。
 5. **計算量**: MPOボンドが2乗で効く（右環境$\sim D_\text{MPS}^2 D_\text{MPO}^2$）。速さでは選ばない。
-6. **精度**: **zip-up < 密度行列法 <（収束した）variational fitting** の中間。各カットを厳密な右環境込みで切る点でzip-upより上、一掃引の貪欲法で再最適化しない点で収束variationalには及ばない。初期値・反復・標準形の前処理は不要。
+6. **精度**: **ジップアップ法 < 密度行列法 <（収束した）変分フィッティング法** の中間。各カットを厳密な右環境込みで切るためジップアップ法より上、一掃引の貪欲法で再最適化しないため収束した変分フィッティング法には及ばない。初期値・反復・標準形の前処理は不要。
 
 密度行列法は、「速さより精度・頑健性・一括圧縮」を取りたいときの選択肢です。
-[zip-up](https://zenn.dev/ultimatile/articles/tn-mps-zipup)（速い／局所近似）と[variational fitting](https://zenn.dev/ultimatile/articles/tn-mpo-variational-fitting)（反復で大域最適に迫る）と合わせ、要求と計算資源で使い分けます。3手法の比較は[入口記事](https://zenn.dev/ultimatile/articles/tn-mpo-mps-comparison)を参照してください。
+[ジップアップ法](https://zenn.dev/ultimatile/articles/tn-mps-zipup)（速い／局所近似）と[変分フィッティング法](https://zenn.dev/ultimatile/articles/tn-mpo-variational-fitting)（反復で大域最適に迫る）と合わせ、要求と計算資源で使い分けます。3手法の比較は[入口記事](https://zenn.dev/ultimatile/articles/tn-mpo-mps-comparison)を参照してください。
