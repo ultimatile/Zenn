@@ -4,14 +4,15 @@
       "no-exclamation-question-mark": false,
       "sentence-length": false,
       "max-ten": false,
+      "max-comma": false,
+      "max-kanji-continuous-len": false,
       "ja-no-weak-phrase": false,
       "arabic-kanji-numbers": false,
       "no-mix-dearu-desumasu": false,
+      "no-unmatched-pair": false,
+      "ja-no-mixed-period": false,
       "no-doubled-joshi": {
         "allow": ["も", "ても"]
-      },
-      "ja-no-mixed-period": {
-        "allowPeriodMarks": ["?", "!"]
       }
     },
     "prh": {
