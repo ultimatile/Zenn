@@ -1,5 +1,5 @@
 ---
-title: "補助トレイトで型ごとのカーネルにディスパッチする（TypeIdとunsafeを消す）"
+title: "その`unsafe`は本当に必要か（エージェントが`Scalar`トレイトを使い損ねた話）"
 emoji: "🦀"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [rust]
@@ -9,149 +9,83 @@ register: almost
 
 ## はじめに
 
-[前作](https://zenn.dev/ultimatile/articles/rust-inherent-impl-conflict-workarounds)では、実数と複素数で実装が分かれる差分を補助トレイト`Scalar`に押し込み、`Tensor`側の`impl`を1本にしました。型ごとの違いは`Scalar`の実装に閉じ込められ、`Tensor`は`T: Scalar`だけを見ればよくなります。本記事は同じ発想を「ディスパッチ」に広げます。型ごとに別々のカーネル（`f64`用と複素数用で別のエントリポイントを持つ外部ライブラリ呼び出しのようなもの）を、ジェネリックな`fn op<T: Scalar>`から呼び分けるとき、つい`TypeId`で型を確かめて`unsafe`でポインタを読み替える実装に手が伸びます。しかしこの`unsafe`は不要で、前作と同じく「型ごとの差分を`Scalar`のメソッドに閉じ込める」だけで消せます。
+[前作](https://zenn.dev/ultimatile/articles/rust-inherent-impl-conflict-workarounds)では、実数と複素数で実装が分かれる差分を補助トレイト`Scalar`に押し込み、`Tensor`側の`impl`を1本にしました。型ごとの違いは`Scalar`の実装に閉じ込められます。
 
-## 問題: ジェネリックな`T`を型ごとのカーネルへ渡す
+ならば、型ごとに別のエントリポイントを持つカーネル（`f64`用と複素数用で函数が分かれている線形代数ライブラリなど）をジェネリックな入口から呼び分けるときも、答えは明らかです。`Scalar`にメソッドを1つ足し、各`impl`で対応するカーネルを呼べばよい。人間がこれを書くなら、まず迷いません。
 
-型ごとに別実装を持つ低レベルカーネルを考えます。線形代数ライブラリは`f64`と複素数で別々のエントリポイントを公開していることがあります。
+ところが、この記事の元になったあるリファクタ（コード生成エージェントによるもの）は、そうしませんでした。`TypeId`で実行時に型を確かめ、`unsafe`でポインタを読み替えてconcreteなカーネルに渡す、というコードを書きました。`Scalar`というトレイトがすぐ隣にあるのにです。
 
-```rust
-use num_complex::Complex;
+なので本記事の問いは「どう直すか」ではありません。それは明らかです。問いは2つです。なぜ`Scalar`があるのに`unsafe`に走ったのか、そしてレビューで何を見れば気づけるのか。テイクホームは1行です。その`unsafe`、本当に必要ですか。
 
-struct Gemm<'a, T> {
-    a: &'a [T],
-    n: usize,
-}
+## 何が書かれていたか
 
-fn gemm_f64(g: Gemm<'_, f64>) { /* f64 専用カーネル */ }
-fn gemm_c64(g: Gemm<'_, Complex<f64>>) { /* 複素数専用カーネル */ }
-```
-
-これをジェネリックな入口から呼びたいとします。
+型パラメータ付きの記述子`GemmDescriptor<T>`を、`ComputeBackend::gemm<T: Scalar>`のような抽象境界まで持ち上げます。カーネルは型ごとに分かれているので、内部で`T`をconcreteな型に戻してから呼びます。書かれていたのはこういう形です。
 
 ```rust
-fn gemm<T: Scalar>(g: Gemm<'_, T>) {
-    // T は generic。gemm_f64 は Gemm<f64> を要求する。どう繋ぐ?
-}
-```
-
-`T`が何かは実行時に`TypeId`で確かめられます。`f64`だと分かれば、`Gemm<T>`を`Gemm<f64>`として読み替えてカーネルに渡せます。
-
-```rust
-use std::any::TypeId;
-
-fn gemm<T: Scalar + 'static>(g: Gemm<'_, T>) {
+fn gemm<T: Scalar + 'static>(&self, desc: GemmDescriptor<'_, T>) -> Result<(), Error> {
     if TypeId::of::<T>() == TypeId::of::<f64>() {
-        gemm_f64(reinterpret::<T, f64>(g));
+        // Safety: T is f64, verified by TypeId.
+        let desc = unsafe { reinterpret_desc::<T, f64>(desc) };
+        gemm_f64(desc)
     } else if TypeId::of::<T>() == TypeId::of::<Complex<f64>>() {
-        gemm_c64(reinterpret::<T, Complex<f64>>(g));
-    }
-}
-
-// Gemm<T> を Gemm<U> として読み替える（T と U が同じ型のときだけ正しい）
-fn reinterpret<T, U>(g: Gemm<'_, T>) -> Gemm<'_, U> {
-    Gemm {
-        a: unsafe { std::slice::from_raw_parts(g.a.as_ptr() as *const U, g.a.len()) },
-        n: g.n,
+        let desc = unsafe { reinterpret_desc::<T, Complex<f64>>(desc) };
+        gemm_c64(desc)
+    } else {
+        Err(Error::NotSupported)
     }
 }
 ```
 
-`reinterpret`が`unsafe`なのは、`Gemm<T>`のスライスを別の型`Gemm<U>`のスライスとしてポインタごと読み替えているからです。`TypeId`で`T == f64`を確かめた上での読み替えなので実際には正しいのですが、その正しさはコンパイラには見えず、`from_raw_parts`の前提（要素数とアラインメントの一致）は人間が保証するしかありません。
+`reinterpret_desc`は、`GemmDescriptor<T>`のスライスを`GemmDescriptor<f64>`としてポインタごと読み替える`unsafe`函数です。`TypeId`で`T == f64`を確かめた上での読み替えなので、soundnessとしては正しい。コメントにもそう書いてあります。
 
-## この`unsafe`はFFI由来ではない
+## その`unsafe`はFFI由来ではない
 
-ここで`unsafe`が出るのは、FFIでも特殊なレイアウト操作でもありません。`gemm_f64`も`gemm_c64`も普通のRustの函数です。`unsafe`は単に「ジェネリックな`T`を具体型に橋渡しする」ためだけに使われています。
+`gemm`という名前や「記述子」という語からは、BLASやFFIの境界のように見えます。しかし、少なくともこの文脈の`gemm_f64`や`gemm_c64`は、[`faer`](https://crates.io/crates/faer)（pure Rustの線形代数ライブラリ）のsafeなAPIを呼ぶ普通の函数でした。FFIも、特殊なレイアウト操作もありません。
 
-橋渡しが要るのは、型ごとのロジックを`gemm_f64`や`gemm_c64`という独立した函数に置き、`TypeId`で選んでいるからです。`T`はジェネリックなまま入口に入り、型が確定した函数に渡すところでキャストが必要になります。
+つまりこの`unsafe`は「FFIだから必要」だったのではありません。`unsafe`は単に、ジェネリックな`T`をconcreteな型に橋渡しするためだけに使われていました。
 
-ここで前作の`Scalar::abs_sq`を思い出します。型ごとの差分（実数は`self * self`、複素数は`norm_sqr()`）は、`Scalar`のメソッドの実装に閉じ込められていました。`impl Scalar for f64`の中では`Self`が`f64`に確定しているので、`self * self`がそのまま書けます。カーネルの呼び分けも、これと同じ場所に置けば同じ理屈でキャストが消えます。
+## 変換問題ではなく、配置問題
 
-## 解決: 振り分けを`Scalar`のメソッドにする
+この状況を「`Descriptor<T>`を`Descriptor<f64>`に変換する問題」と捉えると、`TypeId`で型を確かめて`from_raw_parts`や`ptr::read`で読み替える実装に、自然に流れます。soundnessのコメントも書けて、コンパイラも通ります。局所的には「解けた」ように見えます。
 
-`Scalar`にカーネル呼び出しのメソッドを足します。
+しかし、同じ状況は「型ごとの振る舞いをどこに置くか」という配置問題でもあります。そして`Scalar`のような補助トレイトがすでにあるなら、置き場所は最初から用意されています。`impl Scalar for f64`の中に入れば`Self = f64`は型システムが知っています。人間が`TypeId`比較の正しさをコメントで保証する必要はありません。
+
+やることは、振り分けを`Scalar`のメソッドに移すだけです。
 
 ```rust
-use num_complex::Complex;
-use num_traits::Float;
-
 trait Scalar: Copy {
     type Real: Float;
     fn abs_sq(self) -> Self::Real;
-
-    // 追加: 型ごとのカーネルへの振り分け
-    fn gemm(g: Gemm<'_, Self>);
-}
-
-impl Scalar for f64 {
-    type Real = f64;
-    fn abs_sq(self) -> Self::Real {
-        self * self
-    }
-    fn gemm(g: Gemm<'_, f64>) {
-        gemm_f64(g) // Self = f64 なのでキャスト不要
-    }
-}
-
-impl Scalar for Complex<f64> {
-    type Real = f64;
-    fn abs_sq(self) -> Self::Real {
-        self.norm_sqr()
-    }
-    fn gemm(g: Gemm<'_, Complex<f64>>) {
-        gemm_c64(g)
-    }
-}
-```
-
-入口はメソッドを呼ぶだけです。
-
-```rust
-fn gemm<T: Scalar>(g: Gemm<'_, T>) {
-    T::gemm(g)
-}
-```
-
-`impl Scalar for f64`の中では`Self = f64`がコンパイル時に確定しています。`fn gemm(g: Gemm<'_, f64>)`は最初から`Gemm<f64>`を受け取るので、`gemm_f64`にそのまま渡せます。`TypeId`の分岐も、ポインタの読み替えも要りません。`unsafe`は消えます。
-
-入口の`gemm`も`T: Scalar`だけを見て`T::gemm`を呼びます。どの型が来るかの振り分けは、`TypeId`の実行時比較ではなくコンパイラが型ごとに解決するので、`'static`境界も要らなくなります。
-
-## op が増えたら: enum 1つにまとめる
-
-カーネルが`gemm`だけなら上の形で十分ですが、`svd`、`qr`と増えると、`Scalar`にメソッドがopの数だけ生え、各`impl`にも同じ数だけ実装が並びます。これは前作のニュータイプ回避策で見た「メソッドを追加するたびに型の数だけ`impl`を書く」のと同じ構図です。
-
-opを1つの enum にまとめると、`Scalar`側のメソッドを1本に保てます。
-
-```rust
-enum Op<'a, T> {
-    Gemm(Gemm<'a, T>),
-    Svd(Svd<'a, T>),
-    // ...
-}
-
-trait Scalar: Copy {
-    type Real: Float;
-    fn abs_sq(self) -> Self::Real;
-    fn dispatch(op: Op<'_, Self>); // op が増えても1本
+    fn gemm(desc: GemmDescriptor<'_, Self>) -> Result<(), Error>; // 追加
 }
 
 impl Scalar for f64 {
     // type Real, abs_sq は省略
-    fn dispatch(op: Op<'_, f64>) {
-        match op {
-            Op::Gemm(g) => gemm_f64(g),
-            Op::Svd(s) => svd_f64(s),
-        }
+    fn gemm(desc: GemmDescriptor<'_, f64>) -> Result<(), Error> {
+        gemm_f64(desc) // Self = f64 なので読み替え不要
     }
-}
-
-fn gemm<T: Scalar>(g: Gemm<'_, T>) {
-    T::dispatch(Op::Gemm(g))
 }
 ```
 
-opを足すときは、`Op`に variant を1つと、各`impl`の`match`に腕を1本ずつ足します。`Scalar`のトレイト面（メソッドの数）は1本のまま保てます。
+入口は`T::gemm(desc)`を呼ぶだけになり、`TypeId`も`unsafe`も`'static`境界も消えます。前作で`abs_sq`の差分を`Scalar`に閉じ込めたのと、まったく同じ手です。だからこそ、人間がレビューすれば「なぜ最初からこう書かない」と一瞬で思うわけです。
 
-## まとめ
+## なぜエージェントは局所的に`unsafe`を選ぶのか
 
-型ごとに別実装を持つカーネルをジェネリックな入口から呼ぶとき、`TypeId`と`unsafe`でキャストするのは、型ごとのロジックを独立した函数に置いて実行時に選んでいるからです。前作と同じく、その差分を`Scalar`のメソッドに移すと、`impl`の中で`Self`が具体型に確定し、キャストが要らなくなります。型による振り分けはコンパイラに任せ、`unsafe`は本当に必要な場所（本物のFFIなど）だけに残せます。
+人間がRustを書くとき、`unsafe`はたいてい最後の脱出口です。safe Rustで型と所有権に押し込めるところまで押し込み、どうしてもFFI・raw pointer・レイアウト・aliasingの境界に当たったときだけ、狭い範囲に`unsafe`を閉じ込めます。だから「`Scalar`があるのに`unsafe`」は、人間にはまず起きません。
+
+コード生成エージェントの事情は少し違うと考えると、説明がつきます。`unsafe`を含む低レベルRustを大量に学習しているとすれば、`TypeId`・descriptor・kernel・backend・GEMM・complexといった語彙が並んだとき、実際にはsafeなAPIへのルーティング問題でも、低レベル境界のように見えてしまうことがあります。さらに、`unsafe`を使うとコンパイルエラーが消えます。エラーが消えるのは強い「解けた」信号で、その局所的な達成感が、一歩手前の「そもそも読み替えが要るのか」という問いを飛ばさせます。
+
+言い換えると、これは知識の問題というより、問題の枠の取り方の問題です。「変換問題」と枠を取った時点で、`unsafe`は妥当な道具に見えます。「配置問題」と枠を取り直せれば、`unsafe`は出番がありません。
+
+## レビューで見る匂い
+
+なので、この種の`unsafe`に対するフィードバックは「`unsafe`を避けよう」では弱いです。もっと具体的な合図にした方がよい。
+
+```rust
+TypeId::of::<T>() == TypeId::of::<f64>()
+unsafe { reinterpret_desc::<T, f64>(desc) }
+```
+
+この2つが並んでいたら、`unsafe`の中身がsoundかを確かめる前に、まず設計を疑います。`Descriptor<T>`を`Descriptor<f64>`へ戻すために`TypeId`とraw pointer castを使っているなら、多くの場合やるべきことは、記述子を読み替えることではなく、`T`の実装側へ処理を持っていくことです。
+
+`unsafe`ブロックの中身を正当化するより、`unsafe`ブロックが要る問題設定そのものを消せるなら、その方がよい。レビューや設計の場で、まず一度こう聞くだけで足ります。その`unsafe`、本当に必要ですか。
