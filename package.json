@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/ultimatile/Zenn#readme",
   "dependencies": {
-    "zenn-cli": "^0.5.1"
+    "zenn-cli": "^0.5.2"
   },
   "devDependencies": {
     "husky": "^9.1.7",
