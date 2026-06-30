@@ -23,7 +23,36 @@ $$
 
 この $UV^\dagger$ は $B$ の[極分解](https://en.wikipedia.org/wiki/Polar_decomposition)におけるユニタリ因子である。実際 $B = U\Sigma V^\dagger = (UV^\dagger)(V\Sigma V^\dagger)$ と分けると、$Q := UV^\dagger$ はユニタリ、$H := V\Sigma V^\dagger$ はエルミート半正定値となり、$B = QH$ はまさに極分解である。したがってユニタリProcrustes問題を解くことは、$B$ のユニタリ極因子 $Q$ を求めることと等価である。
 
-ここで $Q = UV^\dagger$ の見方を一つ与えておく。$UV^\dagger = U I_n V^\dagger$ は、$B = U\Sigma V^\dagger$ の特異値（$\Sigma$ の対角成分）をすべて $1$ に置き換え、特異ベクトル $U, V$ はそのまま残した行列である。この特徴づけは後の収束性解析で使う。次節では、特異値分解を陽に計算せず $Q$ へ至る反復を、直交性からのずれの最小化として導く。
+ここで $Q = UV^\dagger$ の見方を一つ与えておく。$UV^\dagger = U I_n V^\dagger$ は、$B = U\Sigma V^\dagger$ の特異値（$\Sigma$ の対角成分）をすべて $1$ に置き換え、特異ベクトル $U, V$ はそのまま残した行列である。この特徴づけは後の収束性解析で使う。以下では、特異値分解を陽に計算せず $Q$ へ至る反復を、直交性からのずれの最小化として導く。
+
+## 行列値函数の勾配
+
+次節ではNewton-Schulz反復を、ある実数値の目的函数の勾配降下として導く。その準備として、ここでは行列を変数とする実数値函数の勾配を定義し、勾配を行列のまま式変形して求めてよいことを正当化しておく。
+
+実数値函数 $f\colon\mathbb{C}^{m\times n}\to\mathbb{R}$ を考え、$X$ を $X+dX$ と動かしたときの1次の変化 $df$ が
+
+$$
+df=\langle\nabla f,dX\rangle_{\mathbb{R}},\qquad
+\langle A,B\rangle_{\mathbb{R}}\coloneqq\operatorname{Re}\langle A,B\rangle=\operatorname{Re}\operatorname{tr}(A^\dagger B)
+$$
+
+を満たす行列 $\nabla f$ を、$f$ の点 $X$ での勾配と定義する。$\langle\cdot,\cdot\rangle_{\mathbb{R}}$ はFrobenius内積 $\langle A,B\rangle=\operatorname{tr}(A^\dagger B)$ の実部であり、$\mathbb{C}^{m\times n}$ を実 $2mn$ 次元空間とみなしたときのEuclid内積に一致する。$f$ が実数値で $df$ も実数なので、内積も実部を取った実内積を用いる。
+
+成分で書けば、この勾配はWirtinger微分で表せる。行列 $X$ の各成分を $X_{ij}=a_{ij}+\mathrm{i}b_{ij}$（$a_{ij},b_{ij}\in\mathbb{R}$）と分け、$f$ を $2mn$ 個の実変数の函数とみなして全微分を取ると、[以前の記事](https://zenn.dev/ultimatile/articles/imaginary-time-evolution-and-steepest-descent#%E5%AE%9F%E5%80%A4%E5%87%BD%E6%95%B0%E3%81%AE%E6%9C%80%E6%80%A5%E9%99%8D%E4%B8%8B%E6%96%B9%E5%90%91%E3%81%AF%E3%81%AB%E9%96%A2%E3%81%99%E3%82%8B%E5%8B%BE%E9%85%8D%E3%81%A0%E3%81%91%E3%81%A7%E6%9B%B8%E3%81%91%E3%82%8B)のベクトルの場合と同じ計算により
+
+$$
+df=\sum_{i=1}^{m}\sum_{j=1}^{n}2\operatorname{Re}\left(\frac{\partial f}{\partial X_{ij}}dX_{ij}\right)=\operatorname{Re}\operatorname{tr}\!\left(\left(2\frac{\partial f}{\partial X^*}\right)^{\!\dagger}dX\right)
+$$
+
+が得られる。ここで $\partial/\partial X_{ij}^*\coloneqq\frac{1}{2}(\partial/\partial a_{ij}+\mathrm{i}\,\partial/\partial b_{ij})$ はWirtinger微分であり、$(\partial f/\partial X^*)_{ij}=\partial f/\partial X_{ij}^*$ である。したがって勾配は
+
+$$
+\nabla f=2\frac{\partial f}{\partial X^*}
+$$
+
+と具体的に書ける。
+
+ここで効いてくるのが $\nabla f$ の一意性である。$\langle\cdot,\cdot\rangle_{\mathbb{R}}$ は内積で非退化なので、$df=\operatorname{Re}\operatorname{tr}(G^\dagger dX)$ を任意の $dX$ について満たす行列 $G$ は $G=\nabla f$ ただ一つに定まる（Rieszの表現定理）。したがって勾配は、成分ごとのWirtinger微分から求めても、$df$ を行列のまま式変形して $\operatorname{Re}\operatorname{tr}(G^\dagger dX)$ の形に整理し $G$ を読み取っても、同じ $\nabla f$ になる。次節ではこの後者の、行列のまま式変形する方法で勾配を求める。
 
 ## Newton-Schulz法
 
@@ -35,17 +64,13 @@ $$
 
 を最小化する勾配降下から、Newton-Schulz反復が導かれる。
 
-::: details 勾配の導出
-
-$X^\dagger X - I_n$ はエルミートなので $f(X) = \frac{1}{4}\operatorname{tr}\!\big((X^\dagger X - I_n)^2\big)$ である。$M := X^\dagger X - I_n$ とおくと $dM = (dX)^\dagger X + X^\dagger dX$ なので、
+前準備の方法で、この $f$ の勾配を行列のまま式変形して求める。$X^\dagger X - I_n$ はエルミートなので $f(X) = \frac{1}{4}\operatorname{tr}\!\big((X^\dagger X - I_n)^2\big)$ である。$M := X^\dagger X - I_n$ とおくと $dM = (dX)^\dagger X + X^\dagger dX$ なので、
 
 $$
 df = \frac{1}{2}\operatorname{tr}(M\,dM) = \operatorname{Re}\operatorname{tr}\!\big((XM)^\dagger dX\big)
 $$
 
-となる。よって（正の実数倍を除いて）勾配は $\nabla f = X(X^\dagger X - I_n)$ である。
-
-:::
+となる。2つ目の等号は、$M$ がエルミートであることから現れる2項が複素共役となり、その和が実部に等しくなるためである。$df = \langle XM, dX\rangle_{\mathbb{R}}$ と読めば、勾配の一意性より $\nabla f = XM = X(X^\dagger X - I_n)$ である。
 
 勾配降下のステップは、ステップ幅 $\eta$ を用いて
 
