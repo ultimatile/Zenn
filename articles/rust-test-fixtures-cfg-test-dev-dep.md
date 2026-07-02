@@ -1,5 +1,5 @@
 ---
-title: "dev-dependency cycle と cfg(test) で自クレートの unit test が壊れる"
+title: "dev-dependency cycleとcfg(test)で自クレートのunit testが壊れる"
 emoji: "🦀"
 type: "tech"
 topics: ["rust", "cargo"]
@@ -7,24 +7,22 @@ published: false
 register: almost
 ---
 
-:::message
-これは記事化前の **HANDOFF（作業メモ）** です。文体・句読点・タイトルは暫定で、記事化の開始時に確定ゲート（CLAUDE.md）で決め直します。最小再現は `cargo` 実機で確認済みです。
-:::
-
 ## TL;DR
 
-- あるクレートのテスト用 fixture を別クレートに切り出し、元クレートがそれを dev-dependency にすると、元クレート自身の `#[cfg(test)]` unit test がコンパイルできなくなる
-- 原因は `cargo test` が元クレートを「`--cfg test` 版」と「非 test 版」の2インスタンスでビルドし、両者の型が別物になること
-- `cargo build` も統合テスト（`tests/*.rs`）も通るので「動く」と誤認しやすい
-- 対処は別クレートにせず、fixture を元クレート内に `#[cfg(any(test, feature = "..."))] pub mod` で置くこと
+- 別クレートに切り出したfixtureを元クレートがdev-dependencyにすると、元クレート自身の`#[cfg(test)]` unit testがコンパイルできなくなる。
+- 原因は`cargo test`が元クレートを「`cfg(test)`あり版」と「なし版」の2インスタンスでビルドし、両者の同名の型が別物になること。
+- `cargo build`も統合テスト（`tests/*.rs`）も通るので「動く」と誤認しやすい。壊れるのは元クレート自身のunit test経路だけ。
+- 対処は別クレートにせず、fixtureを元クレート内に`#[cfg(any(test, feature = "..."))] pub mod`で置くこと。
 
-## 何が起きたか
+## はじめに
 
-ジェネリックな fixture builder（例えばあるトレイト境界 `S: Sector` を持つ `make<S>() -> Thing<S>`）を、複数クレートのテストで共有したくなり別クレート `fixtures` に切り出しました。`fixtures` は型定義のある元クレート `foo` に依存し、`foo` 側は `fixtures` を dev-dependency に追加します（dev-dependency の循環）。`fixtures` 単体のビルドも、`foo` の統合テストも通りました。ところが `foo` 自身の unit test だけが `error[E0277]: the trait bound \`U1: foo::Sector\` is not satisfied` で落ちました。
+あるクレートのテスト用ヘルパー（fixture）を複数のクレートで使い回したくなることがあります。素直な発想はfixtureを独立したクレートに切り出して共有することですが、元クレートの型に依存するfixtureでこれをやると、元クレート自身の`#[cfg(test)]` unit testだけがコンパイルできなくなります。`cargo build`も統合テストも通るのにunit testだけが落ちるので、原因にたどり着きにくい罠です。
+
+具体的には、あるトレイト境界（例えば`S: Sector`）を持つジェネリックなfixture builder `make<S>() -> Thing<S>`を別クレート`fixtures`に切り出し、型定義のある元クレート`foo`がそれをdev-dependencyに追加した状況です。`fixtures`単体のビルドも`foo`の統合テストも通りましたが、`foo`自身のunit testだけが``error[E0277]: the trait bound `U1: foo::Sector` is not satisfied``で落ちました。dev-dependencyが循環している（`fixtures`は`foo`に依存し、`foo`は`fixtures`をdev-dependencyにする）ことがヒントですが、循環自体はビルド可能なので、それだけでは原因が見えません。
 
 ## 最小再現
 
-2クレートの workspace で再現します。
+2クレートのworkspaceで再現します。
 
 ```
 repro/
@@ -41,6 +39,7 @@ pub struct U1;
 impl Sector for U1 {}
 
 pub struct Thing<S: Sector>(pub core::marker::PhantomData<S>);
+
 pub fn consume<S: Sector>(_t: Thing<S>) {}
 
 #[cfg(test)]
@@ -48,8 +47,8 @@ mod tests {
     use super::*;
     #[test]
     fn round_trip() {
-        let t = fixtures::make::<U1>(); // fixtures 経由で foo の型を作り
-        consume(t);                     // foo 自身の関数へ戻す
+        let t = fixtures::make::<U1>(); // fixtures経由でfooの型を作り
+        consume(t);                     // foo自身の関数へ戻す
     }
 }
 ```
@@ -63,28 +62,38 @@ pub fn make<S: Sector>() -> Thing<S> {
 ```
 
 ```console
-$ cargo build -p foo          # 通る
-    Finished `dev` profile ...
+$ cargo build -p foo             # 通る
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.41s
 
-$ cargo test -p foo           # 自クレートの unit test が落ちる
+$ cargo test -p foo --test it    # 統合テストも通る
+     Running tests/it.rs
+test from_integration ... ok
+
+$ cargo test -p foo              # 自クレートの unit test が落ちる
 error[E0277]: the trait bound `U1: foo::Sector` is not satisfied
- --> foo/src/lib.rs:14:34
+  --> foo/src/lib.rs:14:34
+   |
+14 |         let t = fixtures::make::<U1>();
+   |                                  ^^ unsatisfied trait bound
+   |
 note: there are multiple different versions of crate `foo` in the dependency graph
 ```
 
-`note: there are multiple different versions of crate \`foo\`` が核心です。`fixtures::make::<U1>()` が返す `Thing<U1>` の `U1`/`Sector` と、unit test 側の `consume` が要求する `U1`/`Sector` が、別インスタンスの `foo` 由来で食い違います。
+`` note: there are multiple different versions of crate `foo` ``が核心です。`fixtures::make::<U1>()`が返す`Thing<U1>`の`U1`/`Sector`と、unit test側の`consume`が要求する`U1`/`Sector`が、別インスタンスの`foo`に由来して食い違います。この最小再現一式は[`programs/rust-test-fixtures-cfg-test-dev-dep/`](https://github.com/ultimatile/Zenn/tree/main/programs/rust-test-fixtures-cfg-test-dev-dep)に置いています。
 
-## 何が問題か
+## なぜ壊れるのか
 
-`cargo test -p foo` は `foo` を2回ビルドします。unit test バイナリは `foo` を `--cfg test` でコンパイルした「テスト版」です。一方 dev-dependency の `fixtures` がリンクするのは `--cfg test` の付かない「非 test 版」の `foo` です。この2つは Rust にとって別クレートで、同名の型・トレイトも別物として扱われます。unit test（テスト版 `foo` の中身）が `fixtures`（非 test 版 `foo` にリンク）の戻り値を受け取ると、型 identity が一致せず境界を満たせません。
+`cargo test -p foo`は`foo`を2回ビルドします。これはCargoの仕様で、[`cargo test`のドキュメント](https://doc.rust-lang.org/cargo/commands/cargo-test.html)には`--tests`について"the lib target may be built twice (once as a unittest, and once as a dependency for binaries, integration tests, etc.)"とあります。unit testバイナリは`foo`を`cfg(test)`付きでコンパイルした「テスト版」で、dev-dependencyの`fixtures`がリンクするのは`cfg(test)`の付かない「非test版」の`foo`です。
 
-厄介なのは検知のすり抜けです。`fixtures` 単体ビルドと `foo` の統合テスト（`tests/*.rs` は `foo` を1インスタンスでリンクする別クレート）は問題なく通るため、「ビルドできる＝OK」の浅い確認では壊れていることに気づけません。壊れるのは「元クレート自身の unit test が、自分の型を切り出し先クレート経由で受け取る」経路に限られます。
+この2つはRustから見ると別クレートで、同名の型・トレイトも別物として扱われます。`fixtures::make::<U1>()`が返す`Thing<U1>`は非test版`foo`の`U1`/`Sector`で作られ、それを受け取るunit test側の`consume`はテスト版`foo`の`U1`/`Sector`を要求します。両者の型の同一性が一致しないため`U1: Sector`の境界を満たせず、`E0277`になります。エラーの`` note: there are multiple different versions of crate `foo` ``が、この食い違いを名指ししています。
 
-ジェネリック特有でもありません。具体型でも、テスト版 `foo` の函数に非 test 版 `foo` の値を渡せば mismatch になります。ジェネリックだと「trait bound not satisfied」、具体型だと「mismatched types / multiple different versions of crate」として現れる差だけです。
+厄介なのは検知のすり抜けです。`fixtures`単体のビルドと`foo`の統合テスト（`tests/*.rs`は`foo`を1インスタンスだけリンクする別クレートなのでmismatchが起きない）は通ってしまうため、「ビルドできる＝OK」の浅い確認では壊れていることに気づけません。壊れるのは「元クレート自身のunit testが、自分の型を切り出し先クレート経由で受け取る」経路に限られます。「dev-dependencyの循環はビルドが通るか」だけを確かめても、循環自体はビルド可能なので検知できません。
 
-## 現状の対処法
+ジェネリック特有の問題でもありません。具体型でも、テスト版`foo`の函数に非test版`foo`の値を渡せばmismatchになります。違いは現れ方だけで、ジェネリックなら`trait bound not satisfied`、具体型なら`mismatched types`として出ます。
 
-fixture を別クレートにせず、元クレート内に feature gate で置きます。
+## 対処法
+
+fixtureを別クレートに切り出さず、元クレート内にfeature gateで置きます。
 
 ```rust:foo/src/lib.rs
 #[cfg(any(test, feature = "test-fixtures"))]
@@ -96,25 +105,21 @@ pub mod test_fixtures; // pub fn make<S: Sector>() -> Thing<S> { ... }
 test-fixtures = []
 
 [dev-dependencies]
-# foo 自身の統合テスト（別クレート）から arnet 風に foo::test_fixtures を使うため、
-# feature を有効にした自己 dev-dependency を足す
+# 自身の統合テスト（別クレート）からfoo::test_fixturesを使うため、
+# featureを有効にした自己dev-dependencyを足す
 foo = { path = ".", features = ["test-fixtures"] }
 ```
 
-- `foo` 自身の unit test は `cfg(test)` で同一インスタンスの `crate::test_fixtures` を見るので壊れない
-- 他クレートは dev-dependency で `foo = { ..., features = ["test-fixtures"] }` を有効化し `foo::test_fixtures` を使う
-- `resolver = "2"` なら dev-dependency 由来の feature は通常ビルド・公開ビルドに漏れず、fixture コードは出荷物に入らない
+- `foo`自身のunit testは`cfg(test)`で同一インスタンスの`crate::test_fixtures`を見るので壊れない。
+- 他クレートはdev-dependencyで`foo = { ..., features = ["test-fixtures"] }`を有効化し、`foo::test_fixtures`を使う。
+- `resolver = "2"`ならdev-dependency由来のfeatureは通常ビルド・公開ビルドに漏れず、fixtureコードは出荷物に入らない。
 
-## 失敗モード（lean）
+## まとめ
 
-- 別クレート fixture × 元クレートの `#[cfg(test)]` unit test が、切り出し先経由で自分の型を受け取る → `E0277` /「multiple different versions of crate」
-- `cargo build` と統合テストは通るので「動く」と誤認する（壊れるのは unit test 経路だけ）
-- ジェネリック非依存。具体型は「mismatched types」、ジェネリックは「trait bound not satisfied」で出るだけ
-- 「dev-dependency の循環はビルドが通るか」だけの確認では検知できない（循環自体はビルド可能）
+別クレートに切り出したfixtureを元クレートがdev-dependencyにすると、`cargo test`が元クレートをテスト版と非test版の2インスタンスでビルドし、両者の同名の型が食い違うため、元クレート自身のunit testだけがコンパイルできなくなります。`cargo build`も統合テストも通るぶん気づきにくい罠です。fixtureは別クレートにせず、元クレート内に`#[cfg(any(test, feature = "..."))] pub mod`で置き、他クレートからはfeature付きdev-dependencyで使うのが安全です。
 
-## 記事化 TODO / 未確認
+## 参考
 
-- 文体・句読点の確定（CLAUDE.md の確定ゲート）。タイトルも仮
-- `programs/rust-test-fixtures-cfg-test-dev-dep/` に最小再現を置く（検証済みコードあり）
-- どこまで「2回ビルドされる」挙動を Cargo 公式ドキュメントで裏取りできるか確認（本文は実機の `note` 出力ベース）
-- 代替案の比較に触れるか（unit test を統合テストへ移す案は内部 `pub(crate)` 依存があると不可、等）
+- [cargo test — The Cargo Book](https://doc.rust-lang.org/cargo/commands/cargo-test.html) — `--tests`の項に"the lib target may be built twice"の記述
+- [Dev-dependencies — Rust By Example](https://doc.rust-lang.org/rust-by-example/testing/dev_dependencies.html) — dev-dependencyの基本
+- [Feature resolver version 2 — The Cargo Book](https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2) — `resolver = "2"`でdev-dependency由来のfeatureが通常ビルドに漏れない
