@@ -1,5 +1,5 @@
-use foo::{Sector, Thing};
+use foo::Thing;
 
-pub fn make<S: Sector>() -> Thing<S> {
-    Thing(core::marker::PhantomData)
+pub fn make() -> Thing {
+    Thing(0)
 }

@@ -1,17 +1,13 @@
-pub trait Sector {}
-pub struct U1;
-impl Sector for U1 {}
+pub struct Thing(pub i32);
 
-pub struct Thing<S: Sector>(pub core::marker::PhantomData<S>);
-
-pub fn consume<S: Sector>(_t: Thing<S>) {}
+pub fn consume(_t: Thing) {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn round_trip() {
-        let t = fixtures::make::<U1>();
-        consume(t);
+        let t = fixtures::make(); // fixtures経由でfooの型を作り
+        consume(t);               // foo自身の関数へ戻す
     }
 }

@@ -3,7 +3,7 @@
 ```console
 cargo build -p foo          # passes (lib only)
 cargo test  -p foo --test it  # passes (integration test: foo linked once)
-cargo test  -p foo          # FAILS: E0277 + "multiple different versions of crate `foo`"
+cargo test  -p foo          # FAILS: E0308 + "multiple different versions of crate `foo`"
 ```
 
 `foo`'s own `#[cfg(test)]` unit test consumes a value built by the `fixtures`
