@@ -9,7 +9,7 @@ register: joutai
 
 ## はじめに
 
-前回の記事では、ユニタリProcrustes問題の（特殊形の）解が特異値分解で得られることを示した。これは直接法に分類される^[厳密には特異値分解に反復解法を使用すると反復法となる。]。今回は、同じ解を行列積だけからなる反復で近似するNewton-Schulz法を紹介する。後で見るように計算量のオーダー自体は特異値分解と変わらないが、計算が行列積に集約されるためGPUなどの並列計算機で高速に回せ、低精度で十分な場面では少数回の反復で済む。この性質から、Newton-Schulz法は深層学習のオプティマイザ [Muon](https://kellerjordan.github.io/posts/muon/) の中核となる演算として使われている。
+[前回の記事](https://zenn.dev/ultimatile/articles/unitary-procrustes)では、ユニタリProcrustes問題の（特殊形の）解が特異値分解で得られることを示した。これは直接法に分類される^[厳密には特異値分解に反復解法を使用すると反復法となる。]。今回は、同じ解を行列積だけからなる反復で近似するNewton-Schulz法を紹介する。後で見るように計算量のオーダー自体は特異値分解と変わらないが、計算が行列積に集約されるためGPUなどの並列計算機で高速に回せ、低精度で十分な場面では少数回の反復で済む。この性質から、Newton-Schulz法は深層学習のオプティマイザ [Muon](https://kellerjordan.github.io/posts/muon/) の中核となる演算として使われている。
 
 ## ユニタリProcrustes問題の定式化
 
@@ -19,9 +19,9 @@ $$
 A_\mathrm{opt} = \argmin_{\{A \mid A^\dagger A = AA^\dagger = I_n\}} \|A - B\|_\mathrm{F}^2 = UV^\dagger
 $$
 
-で与えられる。ただし $B = U\Sigma V^\dagger$ は $B$ の特異値分解とする。
+で与えられる[^standard]。ただし $B = U\Sigma V^\dagger$ は $B$ の特異値分解とする。本記事では $B$ は正則、すなわちすべての特異値が正であると仮定する。特異な $B$ ではユニタリ極因子が一意に定まらず、後述の反復でもゼロ特異値が動かないためである（収束性の節で触れる）。
 
-この $UV^\dagger$ は $B$ の[極分解](https://en.wikipedia.org/wiki/Polar_decomposition)におけるユニタリ因子である。実際 $B = U\Sigma V^\dagger = (UV^\dagger)(V\Sigma V^\dagger)$ と分けると、$Q := UV^\dagger$ はユニタリ、$H := V\Sigma V^\dagger$ はエルミート半正定値となり、$B = QH$ はまさに極分解である。したがってユニタリProcrustes問題を解くことは、$B$ のユニタリ極因子 $Q$ を求めることと等価である。
+この $UV^\dagger$ は $B$ の[極分解](https://en.wikipedia.org/wiki/Polar_decomposition)におけるユニタリ因子である。実際 $B = U\Sigma V^\dagger = (UV^\dagger)(V\Sigma V^\dagger)$ と分けると、$Q := UV^\dagger$ はユニタリ、$H := V\Sigma V^\dagger$ はHermite半正定値となり、$B = QH$ はまさに極分解である。したがってユニタリProcrustes問題を解くことは、$B$ のユニタリ極因子 $Q$ を求めることと等価である。
 
 ここで $Q = UV^\dagger$ の見方を一つ与えておく。$UV^\dagger = U I_n V^\dagger$ は、$B = U\Sigma V^\dagger$ の特異値（$\Sigma$ の対角成分）をすべて $1$ に置き換え、特異ベクトル $U, V$ はそのまま残した行列である。この特徴づけは後の収束性解析で使う。以下では、特異値分解を陽に計算せず $Q$ へ至る反復を、直交性からのずれの最小化として導く。
 
@@ -36,7 +36,7 @@ df=\langle\nabla f,dX\rangle_{\mathbb{R}},\qquad
 \langle A,B\rangle_{\mathbb{R}}\coloneqq\operatorname{Re}\langle A,B\rangle=\operatorname{Re}\operatorname{tr}(A^\dagger B)
 $$
 
-を満たす行列 $\nabla f$ を、$f$ の点 $X$ での勾配と定義する。$\langle\cdot,\cdot\rangle_{\mathbb{R}}$ はFrobenius内積 $\langle A,B\rangle=\operatorname{tr}(A^\dagger B)$ の実部であり、$\mathbb{C}^{m\times n}$ を実 $2mn$ 次元空間とみなしたときのEuclid内積に一致する。$f$ が実数値で $df$ も実数なので、内積も実部を取った実内積を用いる。
+を満たす行列 $\nabla f$ を、$f$ の点 $X$ での勾配と定義する。$\langle\cdot,\cdot\rangle_{\mathbb{R}}$ はFrobenius内積 $\langle A,B\rangle=\operatorname{tr}(A^\dagger B)$ の実部であり、$\mathbb{C}^{m\times n}$ を実 $2mn$ 次元空間とみなしたときのEuclid内積に一致する。$f$ が実数値で $df$ も実数なので、内積も実部を取った実内積を用いる。$\langle\cdot,\cdot\rangle_{\mathbb{R}}$ は非退化なので、この条件を任意の $dX$ について満たす行列は高々一つであり、勾配は一意に定まる。
 
 成分で書けば、この勾配はWirtinger微分で表せる。行列 $X$ の各成分を $X_{ij}=a_{ij}+\mathrm{i}b_{ij}$（$a_{ij},b_{ij}\in\mathbb{R}$）と分け、$f$ を $2mn$ 個の実変数の函数とみなして全微分を取ると、[以前の記事](https://zenn.dev/ultimatile/articles/imaginary-time-evolution-and-steepest-descent#%E5%AE%9F%E5%80%A4%E5%87%BD%E6%95%B0%E3%81%AE%E6%9C%80%E6%80%A5%E9%99%8D%E4%B8%8B%E6%96%B9%E5%90%91%E3%81%AF%E3%81%AB%E9%96%A2%E3%81%99%E3%82%8B%E5%8B%BE%E9%85%8D%E3%81%A0%E3%81%91%E3%81%A7%E6%9B%B8%E3%81%91%E3%82%8B)のベクトルの場合と同じ計算により
 
@@ -52,7 +52,7 @@ $$
 
 と具体的に書ける。
 
-ここで効いてくるのが $\nabla f$ の一意性である。$\langle\cdot,\cdot\rangle_{\mathbb{R}}$ は内積で非退化なので、$df=\operatorname{Re}\operatorname{tr}(G^\dagger dX)$ を任意の $dX$ について満たす行列 $G$ は $G=\nabla f$ ただ一つに定まる（Rieszの表現定理）。したがって勾配は、成分ごとのWirtinger微分から求めても、$df$ を行列のまま式変形して $\operatorname{Re}\operatorname{tr}(G^\dagger dX)$ の形に整理し $G$ を読み取っても、同じ $\nabla f$ になる。次節ではこの後者の、行列のまま式変形する方法で勾配を求める。
+この一意性より、成分ごとのWirtinger微分を経由しなくても、$df$ を行列のまま式変形して $\operatorname{Re}\operatorname{tr}(G^\dagger dX)$ の形に整理し $G$ を読み取れば、それが勾配 $\nabla f$ である。次節ではこの方法で勾配を求める。
 
 ## Newton-Schulz法
 
@@ -64,13 +64,13 @@ $$
 
 を最小化する勾配降下から、Newton-Schulz反復が導かれる。
 
-前準備の方法で、この $f$ の勾配を行列のまま式変形して求める。$X^\dagger X - I_n$ はエルミートなので $f(X) = \frac{1}{4}\operatorname{tr}\!\big((X^\dagger X - I_n)^2\big)$ である。$M := X^\dagger X - I_n$ とおくと $dM = (dX)^\dagger X + X^\dagger dX$ なので、
+前準備の方法で、この $f$ の勾配を行列のまま式変形して求める。$X^\dagger X - I_n$ はHermiteなので $f(X) = \frac{1}{4}\operatorname{tr}\!\big((X^\dagger X - I_n)^2\big)$ である。$M := X^\dagger X - I_n$ とおくと $dM = (dX)^\dagger X + X^\dagger dX$ なので、
 
 $$
 df = \frac{1}{2}\operatorname{tr}(M\,dM) = \operatorname{Re}\operatorname{tr}\!\big((XM)^\dagger dX\big)
 $$
 
-となる。2つ目の等号は、$M$ がエルミートであることから現れる2項が複素共役となり、その和が実部に等しくなるためである。$df = \langle XM, dX\rangle_{\mathbb{R}}$ と読めば、勾配の一意性より $\nabla f = XM = X(X^\dagger X - I_n)$ である。
+となる。2つ目の等号は、$M$ がHermiteであることから現れる2項が複素共役となり、その和が実部に等しくなるためである。$df = \langle XM, dX\rangle_{\mathbb{R}}$ と読めば、勾配の一意性より $\nabla f = XM = X(X^\dagger X - I_n)$ である。
 
 勾配降下のステップは、ステップ幅 $\eta$ を用いて
 
@@ -128,7 +128,7 @@ $$
 
 が成り立ち^[$g(1+\epsilon) = \frac{3}{2}(1+\epsilon) - \frac{1}{2}(1+\epsilon)^3 = 1 - \frac{3}{2}\epsilon^2 - \frac{1}{2}\epsilon^3 = 1 - \frac{1}{2}\epsilon^2(3+\epsilon)$ であり、$3+\epsilon = \sigma_k + 2$ である。]、誤差が各ステップで2乗されていくため収束は速い。
 
-この2次収束は、前節でステップ幅を $\eta = \frac{1}{2}$ にとったことの帰結である。一般の $\eta$ では各特異値の写像は $g_\eta(\sigma) = \sigma + \eta\,\sigma(1 - \sigma^2)$ となり、不動点 $\sigma = 1$ での微分は $g_\eta'(1) = 1 - 2\eta$ である。これが $0$ になって2次収束するのは $\eta = \frac{1}{2}$ のときに限り、$\eta < \frac{1}{2}$ なら $g_\eta'(1) \in (0, 1)$ で1次収束にとどまる。直交化欠損の勾配降下という見方とNewton法由来の2次収束は、この $\eta = \frac{1}{2}$ で結びつく。本文の $g$ はまさに $g_{1/2}$ である。
+この2次収束は、前節でステップ幅を $\eta = \frac{1}{2}$ にとったことの帰結である。一般の $\eta$ では各特異値の写像は $g_\eta(\sigma) = \sigma + \eta\,\sigma(1 - \sigma^2)$ となり、不動点 $\sigma = 1$ での微分は $g_\eta'(1) = 1 - 2\eta$ である。これが $0$ になって2次収束するのは $\eta = \frac{1}{2}$ のときに限り、$0 < \eta < \frac{1}{2}$ なら $g_\eta'(1) \in (0, 1)$ で1次収束にとどまる（$\frac{1}{2} < \eta < 1$ でも $|g_\eta'(1)| < 1$ なので、局所的には符号を交互に振りながら1次収束する）。直交化欠損の勾配降下という見方とNewton法由来の2次収束は、この $\eta = \frac{1}{2}$ で結びつく。本文の $g$ はまさに $g_{1/2}$ である。
 
 一方で、初期の特異値が $1$ から離れすぎていると収束しない。収束する初期値の範囲は次の通りである。
 
@@ -140,23 +140,23 @@ $$
 g(\sigma) - \sigma = \frac{1}{2}\sigma(1 - \sigma^2) \geq 0
 $$
 
-であり、$g$ は単調増加で上限 $1$ に向かうため、$\sigma = 1$ に収束する。逆に初期値が $\sqrt{3}$ を超えると $g(\sigma) < 0$ となって特異値の符号が反転し、発散する。
+であり、$g$ は単調増加で上限 $1$ に向かうため、$\sigma = 1$ に収束する。逆に初期値が $\sqrt{3}$ を超えると $g(\sigma) < 0$ となって符号が反転し、$1$ へは収束しない。$g$ は奇函数なので $-1$ も不動点であり、符号反転後に $-1$ 側へ収束する場合もあれば、初期値によっては振動・発散する場合もある。$-1$ に収束した成分は符号の反転した極因子を与えるため、いずれにせよ目的の $UV^\dagger$ は得られない。
 
 :::
 
 よって反復が収束するのは、$X_0 = B/\alpha$ のすべての特異値が $(0, \sqrt{3})$ に入る場合である。最大特異値について $\sigma_{\max}(B)/\alpha < \sqrt{3}$、すなわち $\alpha > \sigma_{\max}(B)/\sqrt{3}$ であればよい。最大特異値そのもの（$=\|B\|_2$）を求めると結局特異値分解が要るので、実用上は安価に計算できる $\alpha = \|B\|_\mathrm{F}$ を使う。$\|B\|_\mathrm{F} = \sqrt{\sum_i \sigma_i^2} \geq \sigma_{\max}(B)$ より $X_0$ の最大特異値は $1$ 以下となり、収束域 $(0, \sqrt{3})$ へ確実に収まる。
 
-なお最小特異値が $0$（$B$ が特異）の場合、その特異値は $g(0) = 0$ のまま動かず $1$ に到達しない。これは極分解のユニタリ因子が一意に定まらない状況を表す。以下では $B$ は正則とする。
+なお最小特異値が $0$（$B$ が特異）の場合、その特異値は $g(0) = 0$ のまま動かず $1$ に到達しない。これは極分解のユニタリ因子が一意に定まらない状況を表す。冒頭で $B$ を正則と仮定したのはこのためである。
 
 ## 正確に計算するなら
 
-正確な解が必要なら、素のNewton-Schulzより、極分解を頑健に計算する反復を使うほうがよい。NVIDIAの [cuSOLVER](https://docs.nvidia.com/cuda/cusolver/) には極分解を経由するSVDルーチン `cusolverDnXgesvdp` があり、極分解 $B = QH$ を求めてから $H$ をエルミート固有値分解してSVDを組み立てる。ドキュメントによれば、QR分解ベースの `gesvd` より大幅に速いとされる。
+正確な解が必要なら、素のNewton-Schulzより、極分解を頑健に計算する反復を使うほうがよい。NVIDIAの [cuSOLVER](https://docs.nvidia.com/cuda/cusolver/) には極分解を経由するSVDルーチン `cusolverDnXgesvdp` があり、極分解 $B = QH$ を求めてから $H$ をHermite固有値分解してSVDを組み立てる。ドキュメントによれば、QR分解ベースの `gesvd` より大幅に速いとされる。
 
 ここで使われる反復は本記事の素のNewton-Schulzではなく、QDWH（QRベースの動的重み付きHalley反復）である[^qdwh]。QDWHは3次収束で高々約6反復、悪条件やランク落ちにも頑健で、$\sigma \approx 0$ 付近でも摂動を入れて対処する。素のNewton-Schulzは $\sigma \approx 0$ で収束が鈍く、スケーリングを誤ると発散する（収束域 $(0, \sqrt{3})$）ため、正確なSVD計算にはこうした頑健な反復が用いられる。
 
 ## Muonにおける近似直交化
 
-素のNewton-Schulzが活きるのは、正確さより速さが優先される低精度の直交化である。深層学習のオプティマイザ [Muon](https://kellerjordan.github.io/posts/muon/)（MomentUm Orthogonalized by Newton-Schulz）は、行列パラメータの勾配モメンタム $M$ を直交化してから更新する。ここでの直交化は $M$ に最も近い直交行列を求める操作で、本記事のユニタリProcrustes問題（実行列なら直交Procrustes問題）そのものである。Muonはこの直交化を、特異値分解ではなくNewton-Schulz反復で近似する。
+素のNewton-Schulzが活きるのは、正確さより速さが優先される低精度の直交化である。深層学習のオプティマイザ [Muon](https://kellerjordan.github.io/posts/muon/)（MomentUm Orthogonalized by Newton-Schulz）は、行列パラメータの勾配モメンタム $M$ を直交化してから更新する。ここでの直交化は $M$ に最も近い（半）直交行列を求める操作で、$M$ が正方なら本記事のユニタリProcrustes問題（実行列なら直交Procrustes問題）そのものである。$M$ が矩形の場合は $O^\top O = I$ または $OO^\top = I$ を満たす半直交行列への最近接問題となるが、以下の議論は同様に成り立つ。Muonはこの直交化を、特異値分解ではなくNewton-Schulz反復で近似する。
 
 ただしMuonが使うのは本記事の3次反復ではなく、係数を調整した5次の変種である（$M$ は実行列なので随伴 $\dagger$ は転置 $\top$ になる）。
 
@@ -175,7 +175,7 @@ $$
 
 ## まとめ
 
-ユニタリProcrustes問題の解 $A_\mathrm{opt} = UV^\dagger$ は $B$ のユニタリ極因子であり、特異値分解を陽に計算せずとも、行列積のみからなるNewton-Schulz反復
+ユニタリProcrustes問題の解 $A_\mathrm{opt} = UV^\dagger$ は $B$ のユニタリ極因子であり、$B$ が正則なら、特異値分解を陽に計算せずとも、行列積のみからなるNewton-Schulz反復
 
 $$
 X_{k+1} = \frac{1}{2}X_k\left(3 I_n - X_k^\dagger X_k\right), \qquad X_0 = \frac{B}{\|B\|_\mathrm{F}}
@@ -185,11 +185,13 @@ $$
 
 ## 余談: 直交化の精度と学習
 
-最後に与太話を一つ。X上で、Muonの直交化をNewton-SchulzよりさらにSVDに近い精度の方法（[Polar Express](https://arxiv.org/abs/2505.16932) など）で行うと、かえって検証損失が悪化したという観察が報告されている。直交化に乗るノイズがむしろ学習に効いているのではないか、という見立てである。
+最後に与太話を一つ。X上で、Muonの直交化をNewton-SchulzよりさらにSVDに近い精度で行うと、かえって検証損失が悪化したという観察が報告されている。直交化に乗るノイズがむしろ学習に効いているのではないか、という見立てである。なお高精度な直交化反復を提案する [Polar Express](https://arxiv.org/abs/2505.16932) の論文自体は、Muonへの適用で検証損失が改善したと報告しており、この観察は個別のX投稿での報告であって同論文の主張とは別のものである。
 
 個人の観察で裏付けのある結果ではない。ただ、$\varepsilon \approx 0.3$ までの不正確さは損失を悪化させないというJordanのブログの観察とは整合的で、それを「不正確さは無害」から「不正確さはむしろ有益」へ一歩進めた格好になっている。なぜ荒い直交化で足りるどころか有利になりうるのか、と考えると興味深い。
 
 @[tweet](https://x.com/Creative_Math_/status/2067406111485854079)
+
+[^standard]: 本来のユニタリProcrustes問題は、与えられた $B, C$ に対して $\|AB - C\|_\mathrm{F}$ をユニタリ行列 $A$ の範囲で最小化する標準形として述べられる。この標準形も解き方は同じである。$\|AB - C\|_\mathrm{F}^2$ のうち $A$ に依存するのは $-2\operatorname{Re}\operatorname{tr}(C^\dagger AB)$ の項だけなので、$CB^\dagger$ の特異値分解 $CB^\dagger = W\Sigma Z^\dagger$ を用いて $A_\mathrm{opt} = WZ^\dagger$、すなわち $CB^\dagger$ のユニタリ極因子が解となる。本記事が扱うのは $B$ を $I_n$、$C$ を本文の $B$ と読み替えた特殊形で、このとき $CB^\dagger$ は本文の $B$ そのものになる。
 
 [^qdwh]: QDWHとそれによるSVD・固有値分解の構成は Y. Nakatsukasa, Z. Bai, F. Gygi, "Optimizing Halley's Iteration for Computing the Matrix Polar Decomposition," SIAM J. Matrix Anal. Appl. 31(5):2700–2720 (2010) および Y. Nakatsukasa and N. J. Higham, "Stable and Efficient Spectral Divide and Conquer Algorithms for the Symmetric Eigenvalue Decomposition and the SVD," SIAM J. Sci. Comput. 35(3):A1325–A1349 (2013) を参照。
 
