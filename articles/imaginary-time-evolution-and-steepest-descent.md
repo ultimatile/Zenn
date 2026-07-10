@@ -12,7 +12,7 @@ published: true
 
 ## セットアップと記法
 
-[ブラケット記法](https://ja．wikipedia．org/wiki/%E3%83%96%E3%83%A9-%E3%82%B1%E3%83%83%E3%83%88%E8%A8%98%E6%B3%95)を用いる．
+[ブラケット記法](https://ja.wikipedia.org/wiki/%E3%83%96%E3%83%A9-%E3%82%B1%E3%83%83%E3%83%88%E8%A8%98%E6%B3%95)を用いる．
 
 - $\mathcal{H}$: Hermite演算子（ハミルトニアン）
 - $|\psi\rangle \in \mathbb{C}^n$: 状態ベクトル
