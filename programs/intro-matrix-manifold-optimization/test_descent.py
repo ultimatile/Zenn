@@ -154,6 +154,22 @@ def test_o2_angle_conversion_fprime_equals_2s():
         np.testing.assert_allclose(fprime, 2 * s, rtol=1e-6, atol=1e-9)
 
 
+def test_stiefel_omega_hat_lifts_tangent():
+    # Omega_hat = X A X^d + Xp B X^d - X B^d Xp^d is anti-Hermitian, maps X to Delta,
+    # and its exponential keeps X on the Stiefel manifold (the claim in the Stiefel section).
+    n, p = 4, 2
+    Q, _ = np.linalg.qr(rand_c(n, n))
+    X, Xp = Q[:, :p], Q[:, p:]
+    A = skew(rand_c(p, p))
+    B = rand_c(n - p, p)
+    Delta = X @ A + Xp @ B
+    Om = X @ A @ X.conj().T + Xp @ B @ X.conj().T - X @ B.conj().T @ Xp.conj().T
+    np.testing.assert_allclose(Om, -Om.conj().T, atol=1e-13)
+    np.testing.assert_allclose(Om @ X, Delta, atol=1e-13)
+    Xt = scipy.linalg.expm(0.7 * Om) @ X
+    np.testing.assert_allclose(Xt.conj().T @ Xt, np.eye(p), atol=1e-13)
+
+
 def test_u2_hand_example():
     # B = [[0,2],[-1,0]], A = I: the worked example in the article
     B = np.array([[0.0, 2.0], [-1.0, 0.0]])
