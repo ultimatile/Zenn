@@ -1,0 +1,20 @@
+[project]
+name = "intro-matrix-manifold-optimization"
+version = "0.1.0"
+description = "Hands-on Riemannian gradient descent on U(2)/O(2)/S^1 via Lie-algebra updates"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+]
+
+[dependency-groups]
+# scipy is used only to cross-check the closed-form 2x2 matrix exponential.
+dev = [
+    "pytest>=7.4",
+    "scipy>=1.11",
+]
+# Figure generation for the article. Kept separate so `uv run pytest`
+# does not pull in a plotting stack.
+viz = [
+    "matplotlib>=3.8",
+]
