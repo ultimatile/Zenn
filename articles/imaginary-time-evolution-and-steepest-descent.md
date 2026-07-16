@@ -165,6 +165,32 @@ $$
 
 となる．これは通常の虚時間Schrödinger方程式$|\dot{\psi}\rangle = -\mathcal{H}|\psi\rangle$に，エネルギー期待値$E(t)$によるシフトが加わった形になっている．
 
+なお，通常の虚時間Schrödinger方程式$|\dot{\psi}\rangle = -\mathcal{H}|\psi\rangle$を認めた上で，規格化した状態$\ket{\phi}\coloneqq\ket{\psi}/\sqrt{\braket{\psi|\psi}}$に対する時間発展を考えると（以下$t$依存性を省略）
+
+$$
+\ket{\dot{\phi}}=\frac{1}{\sqrt{\braket{\psi|\psi}}}\ket{\dot{\psi}}+\frac{\mathrm{d}}{\mathrm{d}t}\left(\frac{1}{\sqrt{\braket{\psi|\psi}}}\right)\ket{\psi}
+$$
+
+となる．ここで，$\mathcal{H}$のHermite性より$\bra{\dot{\psi}}=-\mathcal{H}\bra{\psi}$なので$\braket{\psi|\dot{\psi}}=\braket{\dot{\psi}|\psi}=-\braket{\psi|\mathcal{H}|\psi}$となり，$\frac{\mathrm{d}}{\mathrm{d}t}\braket{\psi|\psi}=\braket{\dot{\psi}|\psi}+\braket{\psi|\dot{\psi}}=-2\braket{\psi|\mathcal{H}|\psi}$となることから
+
+$$
+\frac{\mathrm{d}}{\mathrm{d}t}\left(\frac{1}{\sqrt{\braket{\psi|\psi}}}\right)
+=-\frac{1}{2\sqrt{\braket{\psi|\psi}}^3}\frac{\mathrm{d}}{\mathrm{d}t}\langle\psi|\psi\rangle
+=\frac{\langle\psi|\mathcal{H}|\psi\rangle}{\sqrt{\braket{\psi|\psi}}^3}
+$$
+
+となるので，この式と虚時間Schrödinger方程式$|\dot{\psi}\rangle = -\mathcal{H}|\psi\rangle$を代入して
+
+$$
+\ket{\dot{\phi}}=\frac{1}{\sqrt{\braket{\psi|\psi}}}
+\left(
+-\mathcal{H}\ket{\psi}+\frac{\braket{\psi|\mathcal{H}|\psi}}{\braket{\psi|\psi}}\ket{\psi}
+\right)
+=-\left(\mathcal{H}-E\right)\ket{\phi}
+$$
+
+となる．したがって，$E$シフト付きの虚時間Schrödinger方程式は規格化された状態に対する虚時間Schrödinger方程式と見ることができる．
+
 :::details 補足：ノルム保存について
 $E$によるシフトにより，ノルムの2乗$\langle\psi|\psi\rangle$が時間発展で保存される．
 実際，$\mathcal{H}$のHermite性と$E$の実数性から
