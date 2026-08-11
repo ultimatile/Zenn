@@ -3,7 +3,8 @@ title: "NeovimのタイムアウトしないZプレフィックス風キーマ�
 emoji: "⌨️"
 type: "tech"
 topics: ["neovim", "lua"]
-published: false
+published: true
+published_at: 2026-08-13 23:50
 register: almost
 ---
 
