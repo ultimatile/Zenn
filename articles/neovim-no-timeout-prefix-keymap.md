@@ -19,7 +19,7 @@ Vim/Neovimの`ZZ`と`ZQ`コマンドをご存じでしょうか。あまり知�
 
 ## 手動で`Z`プレフィックスを再現する
 
-素直な発想だと、`QS`や`QW`のようなキーマップを[`vim.keymap.set()`](https://neovim.io/doc/user/lua.html#vim.keymap.set())で定義したくなります。しかし前述のとおりこのままでは`timeoutlen`待ちが発生します。そこで、`Q`1つだけを「押された瞬間に次のキーを待ち続ける函数」に割り当てます。
+素直な発想だと、`QS`や`QW`のようなキーマップを[`vim.keymap.set()`](<https://neovim.io/doc/user/lua.html#vim.keymap.set()>)で定義したくなります。しかし前述のとおりこのままでは`timeoutlen`待ちが発生します。そこで、`Q`1つだけを「押された瞬間に次のキーを待ち続ける函数」に割り当てます。
 
 ```lua
 vim.keymap.set("n", "Q", function()
@@ -49,7 +49,7 @@ vim.keymap.set("n", "Q", function()
 end, { desc = "Q-prefix" })
 ```
 
-各アクションでは[`vim.cmd()`](https://neovim.io/doc/user/lua.html#vim.cmd())を使って、`wa`などのExコマンドを実行しています。函数の中で[`getcharstr()`](https://neovim.io/doc/user/builtin.html#getcharstr%28%29)が次のキーを無期限に待ちます。これが`ZZ`の「`Z`のあとを無期限に待つ」挙動そのものになります。次のキーの取得に`getchar()`ではなく`getcharstr()`を使い、さらに[`keytrans()`](https://neovim.io/doc/user/builtin.html#keytrans%28%29)を通しているのは、`<Esc>`のような特殊キーを`"<Esc>"`という素直な文字列として扱うためです。`getchar()`が返す生の数値やバイト列を直接扱うより、分岐や表示が安定します。[`pcall()`](https://www.lua.org/manual/5.1/manual.html#pdf-pcall)で囲んでいるのは、`<C-c>`による中断（`getcharstr()`が例外を投げる）を握りつぶして静かにキャンセルするためです。
+各アクションでは[`vim.cmd()`](<https://neovim.io/doc/user/lua.html#vim.cmd()>)を使って、`wa`などのExコマンドを実行しています。函数の中で[`getcharstr()`](https://neovim.io/doc/user/builtin.html#getcharstr%28%29)が次のキーを無期限に待ちます。これが`ZZ`の「`Z`のあとを無期限に待つ」挙動そのものになります。次のキーの取得に`getchar()`ではなく`getcharstr()`を使い、さらに[`keytrans()`](https://neovim.io/doc/user/builtin.html#keytrans%28%29)を通しているのは、`<Esc>`のような特殊キーを`"<Esc>"`という素直な文字列として扱うためです。`getchar()`が返す生の数値やバイト列を直接扱うより、分岐や表示が安定します。[`pcall()`](https://www.lua.org/manual/5.1/manual.html#pdf-pcall)で囲んでいるのは、`<C-c>`による中断（`getcharstr()`が例外を投げる）を握りつぶして静かにキャンセルするためです。
 
 :::message
 `Q`を上書きすることには副作用があります。Neovimの組み込みの`Q`は、VimのExモードではなく直前に記録したマクロ（レジスタ）を再生するコマンドに変わっています（`:help Q`）。今回のように`Q`を別の用途に使うなら、この組み込みの`Q`は捨てることになります。
@@ -113,7 +113,7 @@ return {
 }
 ```
 
-これで`Q`がwhich-keyのトリガーになり、押すとメニューが出て、`QS`などが選べるようになります。明示トリガーの`Q`キーマップ自体が組み込みの`Q`を上書きするので、マクロ再生の誤発火も同時に解消されます。`<auto>`はwhich-key.nvim v3.17.0の既定値をそのまま残し、それだけでは登録されない`Q`を明示トリガーとして追加しています。
+これで`Q`がwhich-keyのトリガーになり、押すとメニューが出て、`QS`などが選べるようになります。明示トリガーの`Q`キーマップ自体が組み込みの`Q`を上書きするので、マクロ再生の誤発火も同時に解消されます。`<auto>`は既定値をそのまま残し、それだけでは登録されない`Q`を明示トリガーとして追加しています。
 
 ## which-keyは内部で何をしているのか
 
@@ -133,4 +133,4 @@ which-keyを使うなら`getcharstr()`のループを自分で書く必要はあ
 
 ## 謝辞
 
-本記事の内容は[mityu](https://zenn.dev/mityu)さんと[kuu](https://zenn.dev/kuu)さんから教えていただいた内容が基になっています。この場を借りて感謝申し上げます。
+本記事の内容は[mityu](https://zenn.dev/mityu)さんと[kuu](https://zenn.dev/kuu)さんから教えていただいた内容が基になっています。ありがとうございました。
