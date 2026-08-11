@@ -11,7 +11,7 @@ register: almost
 
 Vim/Neovimの`ZZ`と`ZQ`コマンドをご存じでしょうか。あまり知られていないキーですが、`ZZ`は`:wq`（保存して終了）、`ZQ`は`:q!`（保存せず終了）とほぼ同じことができます。私は`:q`を打とうとして`q:`（コマンドラインウィンドウ）が暴発し、よくパニックになるので、そもそも`:`を打たずに済む`ZZ`/`ZQ`を`:q`系より好んで使っています。
 
-この`ZZ`/`ZQ`は普通のキーマップとは異なる性質があります。普通の複数キーのキーマップでは、プレフィックスを押したあと次のキーまでに時間を空けすぎると発火しません。たとえば「`Q`のあとに`S`で全バッファ保存」のような2キーのキーマップを作っても、`Q`を押して一拍置いてから`S`を押すと、`QS`として発火しません。これは`timeoutlen`という設定で管理されており、設定された値以上の時間を空けるとタイムアウトします（デフォルトは1000ミリ秒です）。
+この`ZZ`/`ZQ`は普通のキーマップとは異なる性質があります。普通の複数キーのキーマップでは、プレフィックスを押したあと次のキーまでに時間を空けすぎると発火しません。たとえば「`Q`のあとに`S`で全バッファ保存」のような2キーのキーマップを作っても、`Q`を押して一拍置いてから`S`を押すと、`QS`として発火しません。これは[`timeoutlen`](https://neovim.io/doc/user/options.html#'timeoutlen')という設定で管理されており、設定された値以上の時間を空けるとタイムアウトします（デフォルトは1000ミリ秒です）。
 
 一方、`ZZ`/`ZQ`にはこの制約がありません。`Z`を押してしばらく放置してから`Z`を押しても、ちゃんと「保存して終了」が実行されます。これは`ZZ`や`ZQ`はキーマップではなく、Vim組み込みのノーマルモードコマンドだからです。組み込みコマンドは`timeoutlen`の対象外なので、次のキーを無期限に待てます。
 
@@ -19,7 +19,7 @@ Vim/Neovimの`ZZ`と`ZQ`コマンドをご存じでしょうか。あまり知�
 
 ## 手動で`Z`プレフィックスを再現する
 
-素直な発想だと、`QS`や`QW`のようなキーマップを`vim.keymap.set`で定義したくなります。しかし前述のとおりこのままでは`timeoutlen`待ちが発生します。そこで、`Q`1つだけを「押された瞬間に次のキーを待ち続ける函数」に割り当てます。
+素直な発想だと、`QS`や`QW`のようなキーマップを[`vim.keymap.set()`](https://neovim.io/doc/user/lua.html#vim.keymap.set())で定義したくなります。しかし前述のとおりこのままでは`timeoutlen`待ちが発生します。そこで、`Q`1つだけを「押された瞬間に次のキーを待ち続ける函数」に割り当てます。
 
 ```lua
 vim.keymap.set("n", "Q", function()
@@ -49,7 +49,7 @@ vim.keymap.set("n", "Q", function()
 end, { desc = "Q-prefix" })
 ```
 
-函数の中で[`getcharstr()`](https://neovim.io/doc/user/builtin.html#getcharstr%28%29)が次のキーを無期限に待ちます。これが`ZZ`の「`Z`のあとを無期限に待つ」挙動そのものになります。次のキーの取得に`getchar()`ではなく`getcharstr()`を使い、さらに[`keytrans()`](https://neovim.io/doc/user/builtin.html#keytrans%28%29)を通しているのは、`<Esc>`のような特殊キーを`"<Esc>"`という素直な文字列として扱うためです。`getchar()`が返す生の数値やバイト列を直接扱うより、分岐や表示が安定します。`pcall`で囲んでいるのは、`<C-c>`による中断（`getcharstr()`が例外を投げる）を握りつぶして静かにキャンセルするためです。
+各アクションでは[`vim.cmd()`](https://neovim.io/doc/user/lua.html#vim.cmd())を使って、`wa`などのExコマンドを実行しています。函数の中で[`getcharstr()`](https://neovim.io/doc/user/builtin.html#getcharstr%28%29)が次のキーを無期限に待ちます。これが`ZZ`の「`Z`のあとを無期限に待つ」挙動そのものになります。次のキーの取得に`getchar()`ではなく`getcharstr()`を使い、さらに[`keytrans()`](https://neovim.io/doc/user/builtin.html#keytrans%28%29)を通しているのは、`<Esc>`のような特殊キーを`"<Esc>"`という素直な文字列として扱うためです。`getchar()`が返す生の数値やバイト列を直接扱うより、分岐や表示が安定します。[`pcall()`](https://www.lua.org/manual/5.1/manual.html#pdf-pcall)で囲んでいるのは、`<C-c>`による中断（`getcharstr()`が例外を投げる）を握りつぶして静かにキャンセルするためです。
 
 :::message
 `Q`を上書きすることには副作用があります。Neovimの組み込みの`Q`は、VimのExモードではなく直前に記録したマクロ（レジスタ）を再生するコマンドに変わっています（`:help Q`）。今回のように`Q`を別の用途に使うなら、この組み込みの`Q`は捨てることになります。
@@ -59,9 +59,9 @@ end, { desc = "Q-prefix" })
 
 手動版でも目的の挙動そのものは手に入っています。ただ、コマンドが増えてくると「`Q`を押したら何が選べるのか」を一覧したくなります。これを担うのが[which-key.nvim](https://github.com/folke/which-key.nvim)で、サブコマンドの一覧をポップアップ表示するプラグインです。
 
-ここからは、手動版に代わってwhich-keyを使う場合の書き方です。which-keyを導入するなら、さきほどの手動ディスパッチ（`Q`函数の中で`getcharstr`を回すコード）はwhich-keyが内部に持っているので不要です。代わりに`QS`などを普通のキーマップとして定義し、`Q`をグループとして登録します。
+ここからは、手動版に代わってwhich-keyを使う場合の書き方です。which-keyを導入するなら、さきほどの手動ディスパッチ（`Q`函数の中で`getcharstr`を回すコード）はwhich-keyが内部に持っているので不要です。代わりに`QS`などを普通のキーマップとして定義し、`Q`をグループとして登録します。設定場所はNeovim構成によって異なるため、まず必要な定義だけを抜き出すと次のようになります。
 
-```lua:lua/config/keymaps.lua
+```lua
 require("which-key").add({ { "Q", group = "Q-Commands" } })
 
 vim.keymap.set("n", "QS", function()
@@ -91,24 +91,29 @@ E354: Invalid register name: '^@'
 
 解決策は、`Q`を`<auto>`に任せず、`opts.triggers`に明示することです。明示トリガーには、さきほどの自動登録における単キー制限が適用されません（[which-key.nvim v3.17.0の自動・明示トリガー処理](https://github.com/folke/which-key.nvim/blob/fcbf4eea17cb299c02557d576f0d568878e354a4/lua/which-key/buf.lua#L69-L90)）。
 
-つまり、`opts.triggers`に`Q`を明示的に足せばよいということになります。
+つまり、`opts.triggers`に`Q`を明示的に足せばよいということになります。以下はLazyVim向けの完全な設定例です。LazyVimがユーザー定義のプラグイン設定として読み込む`lua/plugins/which-key.lua`に、実際のキーマップ、グループ名、トリガー設定をまとめます。
 
 ```lua:lua/plugins/which-key.lua
 return {
   "folke/which-key.nvim",
+  keys = {
+    { "QS", "<cmd>wa<cr>", desc = "Write all buffers" },
+    { "QW", "<cmd>xa<cr>", desc = "Write & quit all buffers" },
+    { "QZ", "<cmd>qa!<cr>", desc = "Force quit all buffers" },
+  },
   opts = {
+    spec = {
+      { "Q", group = "Q-Commands" },
+    },
     triggers = {
-      { "<leader>", mode = { "n", "v" } },
-      { "g", mode = { "n", "v" } },
+      { "<auto>", mode = "nxso" },
       { "Q", mode = "n" },
     },
   },
 }
 ```
 
-これで`Q`がwhich-keyのトリガーになり、押すとメニューが出て、`QS`などが選べるようになります。明示トリガーの`Q`キーマップ自体が組み込みの`Q`を上書きするので、マクロ再生の誤発火も同時に解消されます。
-
-なお、ここでは`<auto>`を使わず`<leader>` / `g` / `Q`だけをトリガーに絞っています。`<auto>`を有効にすると、ほかのプレフィックスの体感まで変わってしまうので、必要なものだけ明示する形にしています。
+これで`Q`がwhich-keyのトリガーになり、押すとメニューが出て、`QS`などが選べるようになります。明示トリガーの`Q`キーマップ自体が組み込みの`Q`を上書きするので、マクロ再生の誤発火も同時に解消されます。`<auto>`はwhich-key.nvim v3.17.0の既定値をそのまま残し、それだけでは登録されない`Q`を明示トリガーとして追加しています。
 
 ## which-keyは内部で何をしているのか
 
@@ -118,13 +123,13 @@ return {
 
 @[github](https://github.com/folke/which-key.nvim/blob/fcbf4eea17cb299c02557d576f0d568878e354a4/lua/which-key/triggers.lua#L39-L52)
 
-このキーマップの右辺は本来のコマンドではなく、which-keyの入力状態を開始する函数です。手動版では`Q`単体しか定義しなかったので、`Q`で始まる長いマッピングは存在せず、`timeoutlen`待ちはそもそも起きませんでした。which-key版は`QS`などを実際のマッピングとして持つぶん`Q`がそれらのプレフィックスになりますが、トリガーには`nowait = true`が指定されています。そのためNeovimは`QS`などのより長いマッピングを`timeoutlen`のあいだ待たず、`Q`を押した時点でwhich-keyの入力処理を開始します。
+このトリガー用キーマップは、`Q`が押されると本来のコマンドではなく、which-keyの入力処理を開始します。手動版では`Q`単体しか定義しなかったので、`Q`で始まる長いマッピングは存在せず、`timeoutlen`待ちはそもそも起きませんでした。which-key版は`QS`などを実際のマッピングとして持つぶん`Q`がそれらのプレフィックスになりますが、トリガーには[`nowait`](https://neovim.io/doc/user/map.html#:map-nowait)が指定されています。そのためNeovimは`QS`などのより長いマッピングを`timeoutlen`のあいだ待たず、`Q`を押した時点でwhich-keyの入力処理を開始します。
 
 トリガーが発火すると、which-keyは自身の入力処理へ移ります。その中心にあるのは、手動版と同じ`getcharstr()`によるブロッキング入力です（[which-key.nvim v3.17.0の実装](https://github.com/folke/which-key.nvim/blob/fcbf4eea17cb299c02557d576f0d568878e354a4/lua/which-key/state.lua#L242-L275)）。実際のコードにはポップアップの描画、スクロール、キャンセル、モード変更などの処理も含まれますが、「次のキーを無期限に待ち、入力に対応する処理へ進む」という基本構造は手動版と変わりません。つまりwhich-keyは、受け身のポップアップ表示器ではなく、プレフィックスキーの入力処理を自分で担うプラグインです。
 
 which-keyを使うなら`getcharstr()`のループを自分で書く必要はありません。無期限待ちの部分はwhich-keyに委譲し、手元には`QS`などの中身の定義と、`Q`をトリガー登録する設定だけを残せばよいことになります。
 
-なお、which-keyが`timeoutlen`をまるごと無視しているわけではありません。あるキーがそれ単体で完結するコマンドであり、かつより長い入力のプレフィックスでもある、という曖昧なケースでは、which-keyは`timeoutlen`を参照して「いま実行するか、より長い入力を待つか」を決めます（[which-key.nvim v3.17.0の実装](https://github.com/folke/which-key.nvim/blob/fcbf4eea17cb299c02557d576f0d568878e354a4/lua/which-key/state.lua#L183-L215)）。これはVim本来の曖昧なマッピング解決を、which-keyのループ内で再現したものです。ところが今回の`Q`は、それ単体では何も実行しない純粋なプレフィックスです。そのため、「`Q`をいま実行するか、より長い入力を待つか」という曖昧性がなく、`timeoutlen`を使った判定も発生しません。`ZZ`が組み込みコマンドゆえに`timeoutlen`の対象外だったのと同じで、`Q`も`timeoutlen`が本来関与しない側にいる、というだけのことです。
+なお、which-keyが`timeoutlen`をまるごと無視しているわけではありません。あるキーがそれ単体で完結するコマンドであり、かつより長い入力のプレフィックスでもある、という曖昧なケースでは、which-keyは`timeoutlen`を参照して「いま実行するか、より長い入力を待つか」を決めます（[which-key.nvim v3.17.0の実装](https://github.com/folke/which-key.nvim/blob/fcbf4eea17cb299c02557d576f0d568878e354a4/lua/which-key/state.lua#L183-L215)）。これはVim本来の曖昧なマッピング解決を、which-keyのループ内で再現したものです。ところが今回の`Q`は、それ単体では何も実行しない純粋なプレフィックスです。そのため、「`Q`をいま実行するか、より長い入力を待つか」という曖昧性がなく、`timeoutlen`を使った判定も発生しません。`Q`を押したあとの入力待ちはwhich-keyの`getcharstr()`が担うので、`QS`などはキーの間隔を空けても実行できます。
 
 ## 謝辞
 
