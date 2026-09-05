@@ -12,7 +12,7 @@ published: false
 
 本記事ではこの結果の基礎となる**KAK分解**（Cartan分解の特殊ケース）を解説し、最後にPythonによる小さな実装（PoC）でアルゴリズムの主要部分を確認する。
 
-[^vw04]: F. Vatan and C. Williams, "Optimal quantum circuits for general two-qubit gates", Phys. Rev. A **69**, 032315 (2004). arXiv: [quant-ph/0308006](https://arxiv.org/abs/quant-ph/0308006).
+[^vw04]: F. Vatan and C. Williams, "Optimal quantum circuits for general two-qubit gates", Phys. Rev. A **69**, 032315 (2004).
 
 ## KAK（Weyl）分解
 
@@ -36,27 +36,6 @@ $$
 - $\sigma_{i\alpha}$（$i = 1, 2$, $\alpha = x, y, z$）は量子ビット$i$に作用するパウリ演算子（他方には恒等演算）。すなわち$\sigma_{1\alpha} = \sigma_\alpha \otimes I$, $\sigma_{2\alpha} = I \otimes \sigma_\alpha$であり、$\sigma_{1\alpha}\sigma_{2\alpha} = \sigma_\alpha \otimes \sigma_\alpha$は2量子ビットのパウリテンソル積。以降この量子多体系記法を採り、異なるサイトに作用する演算子の積は暗黙のテンソル積とみなす（例: $K_1 K_2 = K_1 \otimes K_2$）。冗長な$\otimes I$表示も避ける
 
 $SU(4)$は15次元リー群で、KAK分解は12パラメータの局所演算と3パラメータの非局所演算に分離する。**3パラメータ$(c_x, c_y, c_z)$が2量子ビットゲートの非局所的性質を完全に特徴づける**ことが本記事のひとつの主題である。
-
-### リー代数の視点
-
-「KAK」の名称はCartan分解の構造に由来する。$\mathfrak{su}(4)$のリー代数は
-
-$$
-\mathfrak{su}(4) = \underbrace{\mathfrak{k}}_{\text{局所}} \oplus \underbrace{\mathfrak{p}}_{\text{非局所}}
-$$
-
-と分解される。ここで
-
-- $\mathfrak{k} = \mathrm{span}\{\sigma_{1\mu}, \sigma_{2\mu}\}_{\mu \in \{x, y, z\}}$: 局所演算の生成子（6次元）
-- $\mathfrak{p} = \mathrm{span}\{\sigma_{1\mu}\sigma_{2\nu}\}_{\mu, \nu \in \{x, y, z\}}$: 非局所演算の生成子（9次元）
-
-$\mathfrak{p}$の中で互いに可換な最大部分代数（Cartan部分代数）は
-
-$$
-\mathfrak{a} = \mathrm{span}\{\sigma_{1x}\sigma_{2x},\, \sigma_{1y}\sigma_{2y},\, \sigma_{1z}\sigma_{2z}\}
-$$
-
-である。$[\sigma_{1x}\sigma_{2x}, \sigma_{1y}\sigma_{2y}] = 0$等は容易に確認できる。これが3次元であることが、非局所パラメータが3つであることに対応する。残りの6つの非局所生成子（$\sigma_{1x}\sigma_{2y}$, $\sigma_{1x}\sigma_{2z}$等）の自由度は左右の局所演算$K, K'$に吸収される。
 
 ## Weyl chamberと正準クラスベクトル
 
@@ -104,7 +83,7 @@ $$
 - $(\pi/8, 0, 0)$: $\sqrt{\mathrm{CNOT}}$
 
 ![Weyl chamber tetrahedron](/images/intro-kak-decomposition/weyl-chamber.png)
-*正準パラメータ空間中のWeyl chamber（四面体 $OA_1A_2A_3$）。底面 $c_z = 0$ は $SO(4)$クラス（2 CNOT）、線分 $OB$ は1 CNOTで実現できる軌跡、内部は一般の3 CNOT領域に対応する。代表点 $O(=I)$, $\sqrt{\mathrm{CNOT}}$, $B(=\mathrm{CNOT})$, $A_2(=\mathrm{iSWAP})$, $A_3(=\mathrm{SWAP})$ の座標はPoC実装（`kak.py`）で実際に分解して得た値。*
+_正準パラメータ空間中のWeyl chamber（四面体 $OA_1A_2A_3$）。底面 $c_z = 0$ は $SO(4)$クラス（2 CNOT）、線分 $OB$ は1 CNOTで実現できる軌跡、内部は一般の3 CNOT領域に対応する。代表点 $O(=I)$, $\sqrt{\mathrm{CNOT}}$, $B(=\mathrm{CNOT})$, $A_2(=\mathrm{iSWAP})$, $A_3(=\mathrm{SWAP})$ の座標はPoC実装（`kak.py`）で実際に分解して得た値。_
 
 線分$OB$上の任意の点は1 CNOTで実現可能であり、CNOTを「半分」にした$\sqrt{\mathrm{CNOT}}$などが自然に位置づけられる。
 
@@ -315,49 +294,280 @@ $$
 
 ### $SU(4)$ゲート: 3 CNOT
 
-一般の$U \in SU(4)$ではKAK分解と中央の正準ユニタリ$U_d(c_x, c_y, c_z) = \exp(\mathrm{i}(c_x\sigma_{1x}\sigma_{2x} + c_y\sigma_{1y}\sigma_{2y} + c_z\sigma_{1z}\sigma_{2z}))$の構成を組み合わせる。HadamardとCZの恒等式と隣接CNOTの打ち消しを用いて整理すると、$U_d(c_x, c_y, c_z)$は2 CNOTで、左右の局所ゲートと合わせて合計**3 CNOT + 15個の1量子ビットゲート**で任意の$U \in SU(4)$が実現される。
+KAK分解の左右の局所ゲートはCNOTを必要としない。したがって、中央の正準ユニタリ
+
+$$
+U_d(c_x,c_y,c_z)
+= \exp\!\left(\mathrm{i}(c_x\sigma_{1x}\sigma_{2x}
++ c_y\sigma_{1y}\sigma_{2y}+c_z\sigma_{1z}\sigma_{2z})\right)
+$$
+
+を3 CNOTで構成できれば、任意の2量子ビットゲートにも3 CNOTで十分である。以下では、その具体的な回路を与え、行列として$U_d$に一致することを確認する[^vw04]。
+
+回転ゲートは$R_{j\alpha}(\theta)=\exp(\mathrm{i}\theta\sigma_{j\alpha}/2)$と定義する。下付き添字$j$はサイト、$\alpha$は回転軸を表す。1量子ビット上の行列表現は
+
+$$
+R_y(\theta)=\begin{pmatrix}
+\cos(\theta/2)&\sin(\theta/2)\\
+-\sin(\theta/2)&\cos(\theta/2)
+\end{pmatrix},\qquad
+R_z(\theta)=\begin{pmatrix}
+\mathrm{e}^{\mathrm{i}\theta/2}&0\\
+0&\mathrm{e}^{-\mathrm{i}\theta/2}
+\end{pmatrix}
+$$
+
+である。$C_{12}$は量子ビット1を制御、2を標的とするCNOT、$C_{21}$は逆向きのCNOTとする。計算基底への作用は$C_{12}|a,b\rangle=|a,a\oplus b\rangle$、$C_{21}|a,b\rangle=|a\oplus b,b\rangle$である。
+
+この記法で、次の3 CNOT回路を構成する（**右端から順に作用**する）:
+
+$$
+\begin{aligned}
+Q(c_x,c_y,c_z)
+={}&
+R_{1z}\!\left(-\frac{\pi}{2}\right)
+\underbrace{C_{21}}_{\text{3個目}}\,
+R_{2y}\!\left(2c_y-\frac{\pi}{2}\right)\\
+&\quad\cdot\underbrace{C_{12}}_{\text{2個目}}\,
+R_{1z}\!\left(2c_z-\frac{\pi}{2}\right)
+R_{2y}\!\left(\frac{\pi}{2}-2c_x\right)
+\underbrace{C_{21}}_{\text{1個目}}\,
+R_{2z}\!\left(\frac{\pi}{2}\right).
+\end{aligned}
+$$
+
+まず、$U_d$の作用を偶パリティ部分空間$(|00\rangle,|11\rangle)$と奇パリティ部分空間$(|01\rangle,|10\rangle)$に分けて考える。$\sigma_{1x}\sigma_{2x}$はどちらの部分空間でも2状態を交換する。$\sigma_{1y}\sigma_{2y}$は偶パリティでは交換に負符号、奇パリティでは正符号を付ける。$\sigma_{1z}\sigma_{2z}$はそれぞれ$+I$、$-I$として作用する。したがって、基底を$(|00\rangle,|11\rangle,|01\rangle,|10\rangle)$の順に並べると
+
+$$
+U_d=\begin{pmatrix}B_+&0\\0&B_-\end{pmatrix},\qquad
+B_\pm=\mathrm{e}^{\pm\mathrm{i}c_z}
+\begin{pmatrix}
+\cos(c_x\mp c_y)&\mathrm{i}\sin(c_x\mp c_y)\\
+\mathrm{i}\sin(c_x\mp c_y)&\cos(c_x\mp c_y)
+\end{pmatrix}.
+$$
+
+一方、$Q$に回転の行列表現とCNOTの作用を代入して掛け合わせると、同じ基底順で
+
+$$
+Q=\mathrm{e}^{-\mathrm{i}\pi/4}
+\begin{pmatrix}B_+&0\\0&B_-\end{pmatrix}
+\quad\Longrightarrow\quad
+U_d=\mathrm{e}^{\mathrm{i}\pi/4}Q
+$$
+
+を得る。これで任意の実数$(c_x,c_y,c_z)$について、**3 CNOTと1量子ビット回転で$U_d$を実現できる**ことが分かる。位相$\mathrm{e}^{\mathrm{i}\pi/4}$は省略できるグローバル位相だが、行列としての等式には必要である。
+
+最後に、両端の固定$R_z$回転をKAK分解の局所ゲートに吸収する。4個の局所$SU(2)$ゲートをそれぞれ3個の$R_y,R_z$によるEuler回転に分解すると12個、中央に残る可変回転が3個なので、グローバル位相を除いて**最大3 CNOT + 15個の1量子ビット回転ゲート**で実現できる。一般の$U\in U(4)$についても、$SU(4)$に正規化する際のグローバル位相を除けば同じ上限が成り立つ。
 
 ### CNOT数の最適性
 
-> **定理**（Vatan--Williams[^vw04]）: SWAPゲートの実現には少なくとも3個のCNOTが必要である。
+SWAPゲートの実現には少なくとも3個のCNOTが必要である[^vw04]。これを示すため、積状態から生成されるエンタングルメントの平均、**エンタングリングパワー** $\mathrm{EP}(U)$を定義する。
 
-証明には**エンタングリングパワー** $\mathrm{EP}(U)$を用いる:
+#### 出力状態のエンタングルメントを測る
 
-$$
-\mathrm{EP}(U) = \mathop{\mathrm{average}}_{|\psi_1\rangle \otimes |\psi_2\rangle} \left[E(U|\psi_1\rangle \otimes |\psi_2\rangle)\right]
-$$
-
-ここで$E$は線形エントロピーによるエンタングルメント測度。基本性質:
-
-- $0 \le \mathrm{EP}(U) \le 2/9$
-- **局所不変**: $\mathrm{EP}((A \otimes B)U) = \mathrm{EP}(U(A \otimes B)) = \mathrm{EP}(U)$
-- $\mathrm{EP}(A \otimes B) = 0$
-- $\mathrm{EP}(\mathrm{CNOT}) = 2/9$, $\mathrm{EP}(\mathrm{SWAP}) = 0$
-
-**証明**（背理法）: SWAPが2 CNOT以下で実現できると仮定する。
-
-**1 CNOTの場合**: $\mathrm{SWAP} = (A_1 \otimes A_2)\,\mathrm{CNOT}\,(A_3 \otimes A_4)$とすると、局所不変性より$\mathrm{EP}(\mathrm{SWAP}) = \mathrm{EP}(\mathrm{CNOT}) = 2/9$。しかし$\mathrm{EP}(\mathrm{SWAP}) = 0$なので矛盾。
-
-**2 CNOTの場合**: 各CNOTをCZに置換し、$R_z$とCZの可換関係で整理すると、中央の非局所部分は$U = \mathrm{CZ} \cdot (R_y(a) \otimes R_y(b)) \cdot \mathrm{CZ}$の形になる。エンタングリングパワーは
+正規化された2量子ビット純粋状態を
 
 $$
-\mathrm{EP}(U) = \frac{1}{18}(3 - \cos 2a - \cos 2b - \cos 2a \cos 2b)
+|\Psi\rangle=a|00\rangle+b|01\rangle+c|10\rangle+d|11\rangle,
+\qquad T=\begin{pmatrix}a&b\\c&d\end{pmatrix}
 $$
 
-$\mathrm{EP}(\mathrm{SWAP}) = 0$から$a, b \in \{0, \pi\}$、すべての場合で$U$が局所演算に退化し$\mathrm{SWAP} = V_1 \otimes V_2$となるが、SWAPはテンソル積で表せないため矛盾。$\square$
+と書く。量子ビット2を部分トレースして得られる、量子ビット1の縮約密度行列は
 
-したがって3 CNOTは一般の2量子ビットゲートに対して**最適**である。
+$$
+\rho_1=\operatorname{tr}_2(|\Psi\rangle\langle\Psi|),\qquad
+(\rho_1)_{ii'}=\sum_{j=0}^1 T_{ij}T_{i'j}^*,
+\qquad \rho_1=TT^\dagger
+$$
+
+である。エンタングルメント測度として、この縮約密度行列の**線形エントロピー**
+
+$$
+E(|\Psi\rangle)=1-\operatorname{tr}(\rho_1^2)
+$$
+
+を用いる。2×2行列の恒等式$\operatorname{tr}(\rho_1^2)=(\operatorname{tr}\rho_1)^2-2\det\rho_1$と$\operatorname{tr}\rho_1=1$から、
+
+$$
+\boxed{E(|\Psi\rangle)=2\det\rho_1=2|\det T|^2=2|ad-bc|^2}
+$$
+
+となる。つまり、出力の4つの振幅から2×2行列の行列式を計算するだけでよい。積状態では$T$のランクが1なので$E=0$。Bell状態$(|00\rangle+|11\rangle)/\sqrt2$では$\rho_1=I/2$となり、$E=1/2$である。この正規化では$0\le E\le1/2$で、$E=0$となる純粋状態は積状態に限られる。
+
+#### 入力をどう平均するか
+
+各入力量子ビットを独立にBloch球面上の一様分布から選ぶ。具体的には
+
+$$
+|\psi(\theta,\varphi)\rangle
+=\cos\frac{\theta}{2}|0\rangle
++\mathrm{e}^{\mathrm{i}\varphi}\sin\frac{\theta}{2}|1\rangle,
+\qquad d\mu=\frac{\sin\theta\,d\theta\,d\varphi}{4\pi},
+\quad 0\le\theta\le\pi,\quad 0\le\varphi<2\pi
+$$
+
+として、
+
+$$
+\mathrm{EP}(U)=\int d\mu(\psi_1)\,d\mu(\psi_2)\,
+E\!\left(U|\psi_1\rangle|\psi_2\rangle\right)
+$$
+
+と定義する。$\sin\theta$の重みが必要であり、$\theta,\varphi$をそれぞれ一様に選ぶ分布とは異なる。
+
+EPの具体的な値は、この入力分布と測度の正規化に依存する。例えば計算基底4状態だけの平均では、CNOTも積状態しか出力しないため平均は0になる。また、測度を$2E$に変更すればEPも2倍になる。以下では一貫して、球面一様分布と$E=1-\operatorname{tr}(\rho_1^2)$を使う。
+
+#### 球面積分を36個の入力で厳密に計算する
+
+Pauli各軸の固有状態からなる6状態
+
+$$
+\mathcal S=\left\{
+|0\rangle,\ |1\rangle,\
+\frac{|0\rangle+|1\rangle}{\sqrt2},\
+\frac{|0\rangle-|1\rangle}{\sqrt2},\
+\frac{|0\rangle+\mathrm{i}|1\rangle}{\sqrt2},\
+\frac{|0\rangle-\mathrm{i}|1\rangle}{\sqrt2}
+\right\}
+$$
+
+を使うと、任意の2量子ビットユニタリについて
+
+$$
+\boxed{\mathrm{EP}(U)=\frac1{36}\sum_{s,t\in\mathcal S}
+E(U|s\rangle|t\rangle)
+=\frac1{36}\sum_{s,t\in\mathcal S}2|\det T_{U|s\rangle|t\rangle}|^2}
+$$
+
+が成り立つ。$T_{U|s\rangle|t\rangle}$は、出力の振幅を上で定義した2×2行列に並べたもの。この有限平均は**近似ではなく厳密**である。
+
+理由は、平均に必要なモーメントが2次までに限られることにある。各入力密度行列をBlochベクトル$\boldsymbol n,\boldsymbol m$で書くと、積状態は
+
+$$
+\rho_{\mathrm{in}}=
+\frac{I+\boldsymbol n\cdot\boldsymbol\sigma}{2}
+\otimes\frac{I+\boldsymbol m\cdot\boldsymbol\sigma}{2}
+$$
+
+となる。$U$による共役と部分トレースは線形なので、出力の$\rho_1$は$\boldsymbol n,\boldsymbol m$のそれぞれについて高々1次である。したがって$\operatorname{tr}(\rho_1^2)$はそれぞれについて高々2次であり、平均には
+
+$$
+\langle n_i\rangle=0,\qquad
+\langle n_i n_j\rangle=\frac{\delta_{ij}}3
+$$
+
+と$\boldsymbol m$についての同じ関係だけが必要になる。球面一様分布では回転対称性と$|\boldsymbol n|^2=1$からこの関係を得る。一方、6方向$\pm x,\pm y,\pm z$を等確率で選んでも同じ関係が成り立つ。両量子ビットを独立に選ぶため、36入力の平均が球面積分に一致する。
+
+#### CNOTとSWAPで計算する
+
+CNOTの36入力を数えると、次のようになる。制御側を量子ビット1、標的側を量子ビット2とする。
+
+| 制御側の入力 | 標的側の入力 | 組合せ数 | 出力の$E$ |
+| --- | --- | --- | --- |
+| $X,Y$の固有状態（4状態） | $Y,Z$の固有状態（4状態） | 16 | $1/2$ |
+| $Z$の固有状態（2状態） | 任意の6状態 | 12 | 0 |
+| $X,Y$の固有状態（4状態） | $X$の固有状態（2状態） | 8 | 0 |
+
+例えば$|+\rangle|0\rangle$はBell状態になる。より一般には、制御側が$X,Y$の固有状態なら$|0\rangle,|1\rangle$の振幅の絶対値が等しい。標的側を$Y,Z$の固有状態$|t\rangle$にすると、$|t\rangle$と$X|t\rangle$が直交するので、出力は最大エンタングル状態になる。制御側が$Z$の固有状態の場合や、標的側が$X$の固有状態の場合は積状態のままである。
+
+よって
+
+$$
+\mathrm{EP}(\mathrm{CNOT})=\frac{16\times(1/2)+20\times0}{36}=\frac29.
+$$
+
+SWAPは任意の積状態を積状態に写すので$\mathrm{EP}(\mathrm{SWAP})=0$である。同じ理由で局所ゲートも$\mathrm{EP}(A\otimes B)=0$となる。
+
+#### 局所ゲートを付けてもEPは変わらない
+
+出力側に$A\otimes B$を作用させると、縮約密度行列は$\rho_1\mapsto A\rho_1A^\dagger$となる。純度$\operatorname{tr}(\rho_1^2)$が変わらないため、各入力について$E$は不変である。
+
+入力側の局所ゲートはBloch球を回転する。一様分布は回転で変わらないので、積分の変数変換により平均も不変となる。したがって
+
+$$
+\mathrm{EP}((A\otimes B)U)=\mathrm{EP}(U(A\otimes B))=\mathrm{EP}(U).
+$$
+
+入力側の不変性には、平均する分布の選択が効いている。任意の入力分布で成り立つ性質ではない。
+
+#### 2 CNOT以下ではSWAPを作れない
+
+背理法で、SWAPが2 CNOT以下で実現できると仮定する。
+
+**0 CNOTの場合**: 回路全体が局所ゲートになる。しかしSWAPは$A\otimes B$と書けない。実際、入力の量子ビット1を固定して量子ビット2だけ変えたとき、局所ゲートによる量子ビット1の出力は変わらないが、SWAPによる出力は変わる。
+
+**1 CNOTの場合**: $\mathrm{SWAP}=(A_1\otimes A_2)\,\mathrm{CNOT}\,(A_3\otimes A_4)$とすると、局所不変性より$\mathrm{EP}(\mathrm{SWAP})=2/9$となり、$\mathrm{EP}(\mathrm{SWAP})=0$に矛盾する。
+
+**2 CNOTの場合**: CNOTは標的側のHadamardでCZに変換できる。間にある局所ゲートを$R_zR_yR_z$に分解し、$R_z$がCZと可換であることを使って両端へ移す。局所ゲートを除いた中央部分は
+
+$$
+V(a,b)=\mathrm{CZ}\,R_{1y}(a)R_{2y}(b)\,\mathrm{CZ}
+$$
+
+の形になる。36入力の出力振幅から$2|\det T|^2$を平均すると、
+
+$$
+\begin{aligned}
+\mathrm{EP}(V(a,b))
+&=\frac1{18}(3-\cos2a-\cos2b-\cos2a\cos2b)\\
+&=\frac29(1-\cos^2a\cos^2b)
+\end{aligned}
+$$
+
+を得る。次のコードで、部分トレースの定義と同値な行列式の計算から、この式を確かめられる。基底順は$|00\rangle,|01\rangle,|10\rangle,|11\rangle$、回転の符号は前節と同じである。
+
+```python
+import numpy as np
+
+states = np.array([
+    [1, 0], [0, 1], [1, 1], [1, -1], [1, 1j], [1, -1j],
+], dtype=complex)
+states /= np.linalg.norm(states, axis=1, keepdims=True)
+
+def ep(U):
+    values = []
+    for s in states:
+        for t in states:
+            T = (U @ np.kron(s, t)).reshape(2, 2)
+            values.append(2 * abs(np.linalg.det(T)) ** 2)
+    return np.mean(values)
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, s], [-s, c]])
+
+CNOT = np.eye(4)[[0, 1, 3, 2]]
+SWAP = np.eye(4)[[0, 2, 1, 3]]
+CZ = np.diag([1, 1, 1, -1])
+print(ep(CNOT), ep(SWAP))  # 約0.2222222222222222, 0.0
+
+a, b = 0.3, 0.7  # 自由に変えて確かめる
+V = CZ @ np.kron(ry(a), ry(b)) @ CZ
+print(ep(V), (2 / 9) * (1 - np.cos(a)**2 * np.cos(b)**2))
+```
+
+$\mathrm{EP}(V(a,b))=\mathrm{EP}(\mathrm{SWAP})=0$には$\cos^2a=\cos^2b=1$が必要なので、$a,b\in\pi\mathbb Z$となる。このとき各$R_y$は位相を除いて$I$または$\sigma_y$である。さらに
+
+$$
+\mathrm{CZ}\,\sigma_{1y}\,\mathrm{CZ}=\sigma_{1y}\sigma_{2z},\qquad
+\mathrm{CZ}\,\sigma_{2y}\,\mathrm{CZ}=\sigma_{1z}\sigma_{2y}
+$$
+
+より、$V(a,b)$はどの場合も局所ゲートに退化する。両端の局所ゲートを戻しても局所ゲートなので、SWAPとは一致せず矛盾する。$\square$
+
+上で示した「任意のゲートを3 CNOT以下で構成できる」という上限と、SWAPによる「2 CNOT以下では実現できないゲートがある」という下限が一致する。したがって、一般の2量子ビットゲートを実現するためのCNOT数は**最悪の場合に3個で最適**である。すべてのゲートに3個必要という意味ではなく、局所ゲートやCNOT自身などはより少ない個数で実現できる。
 
 ### Chamber位置別分岐
 
 実装では[^impl]、縮約Weyl chamber内の$(c_x, c_y, c_z)$の位置に応じて0/1/2/3 CNOTを使い分ける（Cirqの閉形式から移植）:
 
-|位置|対応クラス| CNOT数|
-| --- | --- | --- |
-| $c_x = c_y = c_z = 0$ |恒等| 0 |
-| $c_x = \pi/4$, $c_y = c_z = 0$ | CNOT類| 1 |
-| $c_z = 0$面（上記以外）| $SO(4)$類| 2 |
-| chamber内点|一般$SU(4)$ | 3 |
+| 位置                           | 対応クラス  | CNOT数 |
+| ------------------------------ | ----------- | ------ |
+| $c_x = c_y = c_z = 0$          | 恒等        | 0      |
+| $c_x = \pi/4$, $c_y = c_z = 0$ | CNOT類      | 1      |
+| $c_z = 0$面（上記以外）        | $SO(4)$類   | 2      |
+| chamber内点                    | 一般$SU(4)$ | 3      |
 
 [^impl]: 1 CNOT分岐の述語は他より厳しく$5 \times 10^{-10}$（zero軸testの$10^{-9}$より約2倍狭い）に設定している。1 CNOTは$(\pi/4, 0, 0)$以外のクラスを実現できないため、内点を1 CNOT分岐に誤ルーティングすると間違ったユニタリを出力するためである。一方2 CNOT分岐への誤ルーティングではユニタリ誤差が$|c_z|$自身で抑えられるため、緩いtoleranceを使う。
 
@@ -414,7 +624,7 @@ KAK分解は2量子ビットゲートを「3パラメータの非局所部分」
 
 ## 参考文献
 
-- F. Vatan, C. Williams, "Optimal quantum circuits for general two-qubit gates", Phys. Rev. A **69**, 032315 (2004). arXiv: [quant-ph/0308006](https://arxiv.org/abs/quant-ph/0308006).
+- F. Vatan and C. Williams, "Optimal quantum circuits for general two-qubit gates", Phys. Rev. A **69**, 032315 (2004).
 - S.S. Bullock, I.L. Markov, "An arbitrary two-qubit computation in 23 elementary gates or less", Phys. Rev. A **68**, 012318 (2003). arXiv: [quant-ph/0211002](https://arxiv.org/abs/quant-ph/0211002).
 - R.R. Tucci, "An Introduction to Cartan's KAK Decomposition for QC Programmers", arXiv: [quant-ph/0507171](https://arxiv.org/abs/quant-ph/0507171).
 - N. Khaneja, R. Brockett, S.J. Glaser, Phys. Rev. A **63**, 032308 (2001).
