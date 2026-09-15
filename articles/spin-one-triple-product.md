@@ -135,7 +135,7 @@ $$
 $$
 \begin{aligned}
 S^\alpha S^\beta S^\delta
-={}&\frac{\mathrm{i}}2\epsilon^{\alpha\beta\gamma}S^\gamma S^\delta
+=&\frac{\mathrm{i}}2\epsilon^{\alpha\beta\gamma}S^\gamma S^\delta
 +\frac12\delta^{\alpha\beta}S^\delta
 +\frac14\left(\delta^{\alpha\delta}S^\beta+\delta^{\beta\delta}S^\alpha\right)\\
 &+\frac{\mathrm{i}}4\left(
@@ -147,8 +147,70 @@ $$
 
 を得る．自由添字$\delta$を$\gamma$に置き換えれば式(3)となる．右辺に現れるスピン演算子の積は高々2つなので，スピン1演算子の三重積を二重積以下に書き下せた．
 
+---
+
 $[\{A,B\},C]=\{A,[B,C]\}+\{B,[A,C]\}$より
 
 $$
-[Q^{\alpha\beta},S^\gamma]=[\{S^\alpha,S^\beta\},S^\gamma]=
+[Q^{\alpha\beta},S^\gamma]=[\{S^\alpha,S^\beta\},S^\gamma]=\{S^\alpha,[S^\beta,S^\gamma]\}+\{S^\beta,[S^\alpha,S^\gamma]\}
+=\mathrm{i}\epsilon_{\beta\gamma\delta}\{S^\alpha,S^\delta\}+\mathrm{i}\epsilon_{\alpha\gamma\delta}\{S^\beta,S^\delta\}
+$$
+
+やや唐突だがBloch Hamiltonian $\bm{c}\cdot \bm{S}$を考える．ここで$\bm{c}\coloneqq(c_x,c_y,c_z)\in\mathbb{R}^3$は任意の実ベクトルである．
+標準基底での$S^\alpha$の行列表示は
+
+$$
+S^x=\frac{1}{\sqrt{2}}\begin{pmatrix}
+0&1&0\\
+1&0&1\\
+0&1&0
+\end{pmatrix}
+\quad
+S^y=\frac{1}{\sqrt{2}}\begin{pmatrix}
+0&-\mathrm{i}&0\\
+\mathrm{i}&0&-\mathrm{i}\\
+0&\mathrm{i}&0
+\end{pmatrix}
+\quad
+S^z=\begin{pmatrix}
+1&0&0\\
+0&0&0\\
+0&0&-1
+\end{pmatrix}
+$$
+
+であるから$\bm{c}\cdot\bm{S}$の行列表示は
+
+$$
+\begin{pmatrix}
+c^z&\frac{c_x-\mathrm{i}c_y}{\sqrt{2}}&0\\
+\frac{c_x+\mathrm{i}c_y}{\sqrt{2}}&0&\frac{c_x-\mathrm{i}c_y}{\sqrt{2}}\\
+0&\frac{c_x+\mathrm{i}c_y}{\sqrt{2}}&-c_z
+\end{pmatrix}
+\quad
+$$
+
+となる．続けてCayley-Hamiltonの定理を適用するため$\bm{c}\cdot\bm{S}$の特性方程式$\mathrm{det}(\bm{c}\cdot\bm{S}-\lambda)=0$を求めると$\lambda(\lambda^2-c^2)=0$となる．したがって
+
+$$
+(\bm{c}\cdot\bm{S})^3=c^2\bm{c}\cdot\bm{S}
+$$
+
+が成り立つ．これをテンソル表示で書き下すと
+
+$$
+c_\alpha c_\beta c_\gamma S^\alpha S^\beta S^\gamma = c_\alpha c_\beta c_\gamma \delta_{\beta\gamma}S^\alpha
+$$
+
+と書ける．ここで$c_\alpha c_\beta c_\gamma$は$c$数なので添え字の入れ替えについて対称である．例えば$\beta$と$\gamma$を入れ替えても$c_\alpha c_\beta c_\gamma=c_\alpha c_\gamma c_\beta$である．一方$S^\alpha S^\beta S^\gamma$はスピン演算子が一般に非可換なので$S^\alpha S^\beta S^\gamma\neq S^\alpha S^\gamma S^\beta$である．
+そこで6種類ある$\alpha$, $\beta$, $\gamma$の置換$\pi\in \mathfrak{S}_3$に渡って上式の和を取り，$c_\alpha c_\beta c_\gamma$の対称性と$\delta_{\alpha\beta}=\delta_{\beta\alpha}$を使って整理すると
+
+$$
+c_\alpha c_\beta c_\gamma\sum_{\pi\in\mathfrak{S}_3}S^{\pi(\alpha)}S^{\pi(\beta)}S^{\pi(\gamma)}=2c_\alpha c_\beta c_\gamma(\delta_{\beta\gamma}S^\alpha+\delta_{\gamma\alpha}S^\beta+\delta_{\alpha\beta}S^\gamma)
+$$
+
+となる．ここで$T_{\alpha\beta\gamma}\coloneqq\sum_{\pi\in\mathfrak{S}_3}S^{\pi(\alpha)}S^{\pi(\beta)}S^{\pi(\gamma)}-2(\delta_{\beta\gamma}S^\alpha+\delta_{\gamma\alpha}S^\beta+\delta_{\alpha\beta}S^\gamma)$と置くと$T_{\alpha\beta\gamma}$は添え字の入れ替えに対して対称($T^{\alpha\beta\gamma}=T^{\pi(\alpha)\pi(\beta)\pi(\gamma)}(\pi\in\mathfrak{S_3})$)となり，上式は$c_\alpha c_\beta c_\gamma T^{\alpha \beta \gamma}=0$である．$T^{\alpha\beta\gamma}$が完全対称であることから$T^{\alpha\beta\gamma}=0$が従う．
+
+$$
+[S^\alpha,Q^{\beta\gamma}]=[S^\alpha,\{S^\beta,S^\gamma\}]=\mathrm{i}\epsilon_{\alpha\gamma\delta}\{S^\beta,S^\delta\}+\mathrm{i}\epsilon_{\alpha\beta\delta}\{S^\delta,S^\gamma\}
 $$
