@@ -214,3 +214,40 @@ $$
 $$
 [S^\alpha,Q^{\beta\gamma}]=[S^\alpha,\{S^\beta,S^\gamma\}]=\mathrm{i}\epsilon_{\alpha\gamma\delta}\{S^\beta,S^\delta\}+\mathrm{i}\epsilon_{\alpha\beta\delta}\{S^\delta,S^\gamma\}
 $$
+
+$T_{\alpha\beta\gamma}$が完全対称で、
+
+$$
+c^\alpha c^\beta c^\gamma T_{\alpha\beta\gamma}=0
+\qquad(\forall c\in\mathbb R^3)
+$$
+
+とします。$c=(c^x,c^y,c^z)$と書けば、完全対称性により左辺は
+
+$$
+\begin{aligned}
+0={}&
+T_{xxx}(c^x)^3
++3T_{xxy}(c^x)^2c^y
++3T_{xxz}(c^x)^2c^z\\
+&+3T_{xyy}c^x(c^y)^2
++6T_{xyz}c^xc^yc^z
++3T_{xzz}c^x(c^z)^2\\
+&+T_{yyy}(c^y)^3
++3T_{yyz}(c^y)^2c^z
++3T_{yzz}c^y(c^z)^2
++T_{zzz}(c^z)^3 .
+\end{aligned}
+$$
+
+これは$c^x,c^y,c^z$に関する恒等的に零な三次多項式です。したがって各単項式の係数が零なので、
+
+$$
+T_{xxx}=T_{xxy}=\cdots=T_{zzz}=0.
+$$
+
+完全対称性により、これらが$T_{\alpha\beta\gamma}$の独立な成分をすべて尽くしているので、
+
+$$
+T_{\alpha\beta\gamma}=0
+$$
