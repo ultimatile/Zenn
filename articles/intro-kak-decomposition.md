@@ -155,13 +155,21 @@ $$
 
 これは$N$の**Takagi分解**にほかならない。Takagi分解とは、対称行列$N = N^T$に対して$V^T N V = \Lambda$（対角）を満たすユニタリ$V$を求める分解で、通常の固有値分解$P^{-1} N P = \Lambda$と異なり左側が転置になる。
 
-$V = K'_m$が求まれば、$D^2$の固有値から位相$d_k$が、$M = K_m D V^T$から$K_m = M V D^{-1}$が得られる。
+$V = {K'_m}^T$が求まれば、$D^2$の固有値から位相$d_k$が、$M = K_m D V^T$から$K_m = M V D^{-1}$が得られる。
 
 ### Hermitianトリック
 
-$N$は対称かつユニタリだがHermitianではないため、直接`eigh`（Hermitian行列の固有値分解）で対角化できない。標準的なTakagi分解ルーチンも一般には利用できないため、**$N$を実Hermitian行列に変換**する。
+$N$は対称かつユニタリだがHermitianではないため、直接`eigh`（Hermitian行列の固有値分解）で対角化できない。かといってTakagi分解の**標準形**（Autonne–Takagi標準形）$N = U\Sigma U^T$をそのまま使うこともできない。標準形は$\Sigma$を実非負対角、すなわち特異値に取るが、$N$はユニタリなので特異値はすべて1で$\Sigma = I$となり、$N = UU^T$に潰れてしまう。位相の情報が$\Sigma$側に残らないうえ、$U$は実直交行列の分だけ不定である（$O$を実直交として$(UO)(UO)^T = UU^T$）。ここで欲しいのは$D^2$の位相$d_k$と、magic基底経由で$SU(2) \otimes SU(2)$へ戻すための**実**直交な$V$のほうである。
 
-$N$が対称ユニタリのとき、
+求める形が存在すること自体は初等的に示せる。$N = A + \mathrm{i}B$と実部・虚部に分けると、$N = N^T$より$A, B$はともに実対称であり、$N^\dagger = \bar{N} = A - \mathrm{i}B$から
+
+$$
+N^\dagger N = A^2 + B^2 + \mathrm{i}[A, B] = I
+$$
+
+実部と虚部を比べて$A^2 + B^2 = I$かつ$[A, B] = 0$を得る。**可換な実対称行列は実直交行列で同時対角化できる**ので、$V^T A V$と$V^T B V$がどちらも実対角となる$V \in O(4)$が存在し、$V^T N V = D^2$が求める対角ユニタリである。つまり難所は分解の存在ではなく、**この同時対角化が縮退点で数値的に不安定化する**点である。以下はその扱いを述べる。
+
+$A$と$B$が可換であることから、実係数$a, b$のどの組についても$aA + bB$の固有ベクトルは、固有値が単純である限り$A$と$B$の共通固有ベクトルになる。どの$(a, b)$を選ぶかには自由度があり、本記事は$(a, b) = (1, 1)$を取る。すなわち
 
 $$
 H_1 = \mathrm{Re}(N) + \mathrm{Im}(N) = \frac{(1-\mathrm{i})N + (1+\mathrm{i})N^\dagger}{2}
@@ -169,7 +177,7 @@ $$
 
 は**実対称行列**になる。固有値は$\sqrt{2}\sin(2\phi_k + \pi/4)$（$\phi_k$は$D^2$の位相の半分）。
 
-なぜ$\mathrm{Re}(N) + \mathrm{Im}(N)$かというと、CNOTのような特定のゲートでは$\mathrm{Re}(N) = 0$になるため$\mathrm{Re}(N)$単独では全固有値が0で完全縮退してしまうからである。$\mathrm{Im}(N)$を加えることで縮退が解ける場合が多い。
+自由度があるとはいえ$(a, b) = (1, 0)$、つまり$\mathrm{Re}(N)$単独は取れない。CNOTのようなゲートでは$\mathrm{Re}(N) = 0$になり、全固有値が0で完全に縮退してしまうからである。$\mathrm{Im}(N)$を混ぜるのはこの退化を避けるためであり、$(1, 1)$はその最も単純な選び方にすぎない。
 
 ### 2段階固有分解
 
@@ -204,6 +212,27 @@ $$
 [^cluster-bug]: 当初の素朴な実装（global eigh）はこの3重縮退点で$O(1)$のFrobenius round-trip誤差を生じていた。しきい値$\tau_\mathrm{rel}, \tau_\mathrm{abs}$は、`eigh`の固有ベクトル精度劣化（誤差$\sim$ ulp $\cdot \|N\| / \mathrm{gap}$）を吸収するように選んでいる。
 
 最後に各列の最大絶対値要素を実正にして位相を固定し、$\det(V) = +1$を強制（必要なら第0列を反転）して$V \in SO(4)$を保証する。
+
+#### Qiskitはどうしているか
+
+$(a, b)$の選び方に自由度がある、という同じ事実をQiskitは逆向きに使う。Rust実装[^qiskit-rs]は$(a, b)$を標準正規分布から引いて$aA + bB$を`eigh`し、得た$P$と$D$が$PDP^T = N$（Qiskitのコード中では`m2`）を$10^{-13}$の精度で満たすかを検査して、通らなければ引き直す。
+
+```rust
+// Mixing them together _should_ account for any degeneracy problems, but it's not
+// guaranteed, so we repeat it a little bit.  The fixed seed is to make failures
+// deterministic; the value is not important.
+let mut state = Pcg64Mcg::seed_from_u64(2023);
+```
+
+これを最大100回繰り返し、すべて失敗すると`TwoQubitWeylDecomposition: failed to diagonalize M2`で例外になる。シードは固定なので実行ごとの再現性はあるものの、縮退点でgenericな$(a, b)$を引ける保証は上のコメントにあるとおり無く、この例外は繰り返し報告されている[^qiskit-issues]。
+
+なおQiskitは高対称点の不安定性に対して`Specialization`という仕掛けも持つが、これは対角化を迂回するものではない。ランダム対角化は常に先に走り、そこから得た$(c_x, c_y, c_z)$が高対称クラス（Id類・SWAP類・Controlled類・fSim類など）の近傍にあれば、そのクラスの厳密な分解へスナップして返す、という後段の正準化である。
+
+本記事の方針はこれと対になる。$(a, b)$を$(1, 1)$と$(1, -1)$に固定したうえで、引き直しの代わりに残った縮退をクラスタ制限で決定的に潰す。リトライも失敗パスも持たない。
+
+[^qiskit-rs]: `crates/synthesis/src/two_qubit_decompose/weyl_decomposition.rs`, [Qiskit](https://github.com/Qiskit/qiskit), Apache-2.0。
+
+[^qiskit-issues]: Qiskit issue [#3637](https://github.com/Qiskit/qiskit/issues/3637), [#4159](https://github.com/Qiskit/qiskit/issues/4159), [#7120](https://github.com/Qiskit/qiskit/issues/7120)。
 
 ### 正準パラメータの抽出
 
