@@ -4,6 +4,7 @@ emoji: "🦀"
 type: "tech" # tech: 技術記事/ idea: アイデア
 topics: ["量子コンピュータ", "量子ゲート", "テンソルネットワーク", "cpp"]
 published: false
+register: joutai
 ---
 
 ## はじめに
@@ -182,7 +183,17 @@ $$
 
 ただし**ここで注意が必要**で、$V_\mathrm{tmp}^\dagger H_2 V_\mathrm{tmp}$全体に2段目の`eigh`をかけると、$H_1$ブロック間の混合が許容されてしまい、特定のドレッシングされた入力（例: $(\pi/8, \pi/8, c)$近傍で$H_1$が3重縮退する点）で同時対角化が破綻する[^cluster-bug]。
 
-これを避けるため、$V_\mathrm{tmp}$の列を$H_1$の固有値クラスタにグループ化し、**各クラスタ内に制限した** $V_g^\dagger H_2 V_g$ごとに`eigh`を適用する（cluster-restricted simultaneous diagonalization）。クラスタ内の回転$R_g$をスキャッターして得た4×4回転$R$から、最終的な固有ベクトル行列は
+**固有値クラスタ**とは、$H_1$の固有値を昇順に並べた$\lambda_1 \le \cdots \le \lambda_4$を、隣接する組が
+
+$$
+|\lambda_{k+1} - \lambda_k| < \max\!\left(\tau_\mathrm{rel}\,\max(|\lambda_k|, |\lambda_{k+1}|),\ \tau_\mathrm{abs}\right)
+$$
+
+を満たす限り繋いでできる極大な連続部分列である（$\tau_\mathrm{rel} = 10^{-4}$、$\tau_\mathrm{abs} = 10^{-12}$）。相対しきい値に絶対床$\tau_\mathrm{abs}$を噛ませるのは、固有値が0を通過する場合に相対判定が機能しないためである。
+
+クラスタ単位で扱う理由は摂動の効き方にある。クラスタ$\mathcal{C}$と残りの固有値の分離を$\delta = \min_{\lambda \in \mathcal{C},\, \mu \notin \mathcal{C}}|\lambda - \mu|$とすると、Davis–Kahanの$\sin\Theta$定理により、摂動$E$に対する不変部分空間のずれは$\|\sin\Theta\| \lesssim \|E\|/\delta$で抑えられる。クラスタ内部の個々の固有ベクトルは内部ギャップが0に近づくと定まらないが、クラスタ全体が張る部分空間は外側の分離$\delta$でしか劣化しない。2段目の`eigh`をこの部分空間の内側に閉じ込めるのはそのためである。
+
+これを踏まえ、$V_\mathrm{tmp}$の列を$H_1$の固有値クラスタにグループ化し、**各クラスタ内に制限した** $V_g^\dagger H_2 V_g$ごとに`eigh`を適用する。これを本記事では**クラスタ制限つき2段eigh**（cluster-restricted simultaneous diagonalization）と呼ぶ。クラスタ内の回転$R_g$をスキャッターして得た4×4回転$R$から、最終的な固有ベクトル行列は
 
 $$
 V = V_\mathrm{tmp} R
@@ -190,7 +201,7 @@ $$
 
 となる。
 
-[^cluster-bug]: 当初の素朴な実装（global eigh）はこの3重縮退点で$O(1)$のFrobenius round-trip誤差を生じていた。クラスタ化しきい値は相対$10^{-4}$、絶対床$10^{-12}$で、`eigh`の固有ベクトル精度劣化（誤差$\sim$ ulp $\cdot \|N\| / \mathrm{gap}$）を吸収するように選んでいる。
+[^cluster-bug]: 当初の素朴な実装（global eigh）はこの3重縮退点で$O(1)$のFrobenius round-trip誤差を生じていた。しきい値$\tau_\mathrm{rel}, \tau_\mathrm{abs}$は、`eigh`の固有ベクトル精度劣化（誤差$\sim$ ulp $\cdot \|N\| / \mathrm{gap}$）を吸収するように選んでいる。
 
 最後に各列の最大絶対値要素を実正にして位相を固定し、$\det(V) = +1$を強制（必要なら第0列を反転）して$V \in SO(4)$を保証する。
 
@@ -593,7 +604,7 @@ def kak_decompose(U):
     M = B.conj().T @ U @ B
     # 3. N = M^T M（転置）
     N = M.T @ M
-    # 4. Hermitianトリック+ cluster-restricted 2段eighでVを求める
+    # 4. Hermitianトリック+ クラスタ制限つき2段eighでVを求める
     V = simultaneous_eigenbasis(N)
     # 5. slot encodingから(cx, cy, cz)
     d = np.angle(np.diag(V.conj().T @ N @ V)) / 2
@@ -620,7 +631,7 @@ random SU(4):       (cx, cy, cz) = ...任意のchamber内点...      err < 2e-14
 
 KAK分解は2量子ビットゲートを「3パラメータの非局所部分」と「12パラメータの局所部分」に分離し、CNOT数の上限・下限を体系的に議論する基盤を与える。Cartan分解という抽象的な数学的構造が、量子回路コンパイルという具体的な工学問題に直結している好例といえる。
 
-実装は数値的には自明でなく、特に縮退点での`eigh`固有空間の自由度の取り扱い（cluster-restricted 2段eigh、diagonal-M bypass）が要点となる。
+実装は数値的には自明でなく、特に縮退点での`eigh`固有空間の自由度の取り扱い（クラスタ制限つき2段eigh、diagonal-M bypass）が要点となる。
 
 ## 参考文献
 
