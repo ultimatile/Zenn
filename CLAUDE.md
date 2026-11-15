@@ -39,6 +39,7 @@ published: false       # true=公開 / false=下書き
 - LLM由来の修辞過剰（節・文を丸ごと太字／`——`二倍ダッシュ／アフォリズム調の締め・メタ言及／対句・三段の修辞／日本語概念への英語一語グロスの乱発）を避ける。語彙狩り（接続詞や専門用語の禁止）はしない。詳細は `japanese-writing` skill を参照。
 - イタリック `*…*` は日本語の強調に使わない（日本語に斜体強調の慣習が無い）。英単語に当てるのは文法上可だが用途は限定的。画像直後の `*キャプション*` はキャプション構文なので対象外。
 - プレゼン: 初出のOSS・ツールは公式GitHub/ランディングにリンク。一般的でないが説明するほどでない専門用語は権威あるリンク（Wikipedia等）を張る。記事の核心となる用語はリンクで済ませず分野・意味・注目される理由を説明する。専門家前提の導入を避け、非専門家が追える足場を置く。詳細は `japanese-writing` skill。
+- **動きで理解が進む箇所は html-embed のアニメーションを積極的に使う。** 対象は手順・状態遷移・時間発展・データの流れなど、静止画や文章では読者が頭の中で動かす必要があるもの。構成案の段階で候補箇所と「何を動かして何を見せるか」を挙げて提案し、確認を取ってから作る。動かす理由が無い図（静的な構造・表で足りるもの）は mermaid や表で済ませる。作り方・検証手順・仕様は「Zenn Markdown記法 > HTML/CSS埋め込み」節に従い、検証を通してから完成とする。
 - **用語・表記（英単語/カタカナ/人名由来テクニカルターム）は [`GLOSSARY.md`](./GLOSSARY.md) に従う。**
 - **表外漢字（常用・人名用以外）は `ja-joyo-or-jinmeiyo-kanji` ルールが検出する**（手動 `lint:text` レーン。pre-commit は autofix-only なので止めない）。目的は意図しない漢字の混入事故の検出であり、新聞表記の強制ではない。意図的に使う表外漢字（函は人名用漢字なので対象外。繋・閾・叩・罠 等）は `.textlintrc.json` の `filters.allowlist.allow` に**例外辞書**として登録する。新出の表外漢字が警告されたら、事故なら直し、意図的な語彙選択なら著者に確認のうえ辞書に追加する。注意: allowlist は範囲マスクなので登録文字列上では全ルールのエラーが消える（1字単位の登録なら実害なし）。
 - **表記ゆれ・用字（しくみ⇔仕組み 等）は textlint で機械的に統制する**（`npm run lint:text` / `npm run lint:text:fix`）。表記辞書は `prh.yml`、設定は `.textlintrc.json`。数の漢字／算用数字の選択は語彙化依存（三角形は漢字・65537角形は算用）で機械化に向かないため、`arabic-kanji-numbers` は無効化し書き手判断とする。意味的な用語判断は GLOSSARY、機械的な表記ゆれは textlint、と役割を分ける。
@@ -111,6 +112,35 @@ URLだけの行（前後に改行）で自動埋め込みされるもの、ま�
 
 - ` ```mermaid ` のコードブロックで自動レンダリング。文法は mermaid.js 公式に従う。
 - 制限: 1ブロック**2000文字**以内、フローチャートの `&` チェーンは**10**以下、クリックイベント（Interaction）は無効。
+
+### HTML/CSS埋め込み（html-embed、Beta）
+
+出典: <https://info.zenn.dev/2026-11-11-html-embed> と markdown-guide の該当節。Betaのため仕様は変わりうる。使う前に両ページで現行仕様を確かめる。
+
+- ` ```html-embed ` のコードブロックにHTMLと `<style>` を書くと図として表示される。`<html>`・`<head>`・`<body>` は書かない。本文と区別する枠と「ユーザー作成コンテンツ」ラベルが付き、Zennとは別ドメインのiframeで表示される。
+- **JavaScriptは実行されない**（`<script>`・`onclick` 等も不可）。動きはCSSアニメーション（`@keyframes`・`transition`）と `:hover` で作る。チェックボックス／ラジオの `<input>` は使えるので、`:checked` でタブ・開閉・ステップ送りを作れる。
+- 使えないもの: `<a>`（文字として表示されるだけ）、`<form>`・`<button>`・`<textarea>`・`<select>`・文字入力の `<input>`、外部CSS・`@import`・Webフォント・`<iframe>`。画像はURLと `data:` が使える。
+- 制限: 1ブロック**50KB**まで、表示の高さ**500px**まで（超過分は埋め込み内スクロール）。幅はPCで約700px、スマホで約340px。`@media (max-width: 640px)` などでスマホ時に横はみ出ししないようにする。
+- **ダークモード**: 読者がダークモードのとき埋め込みの `<html>` に `data-theme="dark"` が付く。`[data-theme="dark"]` セレクタ・`light-dark()`・`<style data-theme="...">` のいずれかで配色を切り替え、背景色を明示する。
+- **`@media (prefers-reduced-motion: reduce)` でアニメーションを止める**（公式の要求）。
+- 色だけで区別させず文字・ラベルを併記する。内容を伝える画像は背景画像にせず `<img alt="...">` で書く。画像URLを推測で作らない。
+- 禁止: Zennや他サービスの画面を装う表示、読者を誤解させる表示、激しく点滅する表示（運営が表示を止めることがある）。
+- 非対応環境（古いzenn-cli等）ではHTMLのコードブロックとして表示される。
+
+#### 図の作り方（テンソルネットワーク図など）
+
+- **数式の多い静止図**は従来どおり Typst / TikZ → PNG（`images/<slug>/` の `Makefile`）。Typst の SVG 出力は html-embed に向かない: 既存図で 38〜74KB（上限超えあり）、文字がグリフ図形で全体の5〜6割を占め、class/id が無くCSSで動かせず、色が固定。
+- **動く図は SVG＋CSS を直書き**する。要素に class を付けて `@keyframes` / `:checked` で状態を切り替え、配色は CSS 変数＋`[data-theme="dark"]` で持つ。MPS のような繰り返し構造は生成スクリプトで出力し、スクリプトは `images/<slug>/` に置く。
+- **数式ラベルは Temml（LaTeX→MathML 変換）で生成した MathML** を SVG の `<foreignObject>` に入れる。埋め込み内では外部CSS・Webフォントが読めないため KaTeX は使えない。MathML は1ラベル50〜300B程度と軽く、文字なので `color` が効き、ダークモード・アニメーションの対象にできる。表示は OS の数式フォントに依存し、本文の KaTeX と見た目は揃わない。Temml はインラインの `\sum` 等に `<mo stretchy="true">` を付け、Chrome では `\bigl(` 等と並ぶと ∑ が数式軸から約0.26em下にずれる（属性を外すとずれは0.01em程度）。生成スクリプトでこの属性を外す（KAK分解記事の `kak-tn-embed.mjs` 参照）。
+- **スマホ幅は別レイアウトを書く。** `viewBox` で縮小すると `<foreignObject>` 内の MathML も縮む（600px設計を340pxに収めるとラベルが高さ約9px）。`@media (max-width: 640px)` で段組みを変える等で文字サイズを保つ。
+- 検証済み（2026-11-15、macOS Chrome）: 本番 iframe（`embed.zenn.studio`）で MathML・`<foreignObject>` が除去されずに描画され、`@keyframes`・ラジオ切り替え・`data-theme` によるダークモードが動作。未検証: Safari / Firefox / iOS / Android / Windows での MathML の見た目。
+
+#### 検証手順
+
+- `npx zenn preview` は本番と同じ埋め込みサーバー（`embed.zenn.studio`）の iframe を使うので、iframe 側の除去や描画は preview で確かめられる。ライト／ダーク、アニメーション、`:checked` の動作を確認する。
+- **スマホ幅は preview では確かめられない。** preview は狭い画面幅でサイドバーが本文を圧迫し、iframe が約186pxになる（本番スマホは約340px）。埋め込みのHTMLを幅340pxのページに直接置いて確認する。
+- **reduced-motion はヘッドレス Chrome のメディア emulation が別オリジンの iframe に届かない。** スマホ幅と同様に、HTMLを直接置いたページで `prefers-reduced-motion: reduce` を emulate してアニメーションが止まることを確認する。
+- 50KB 上限は改行・空白を含む生のバイト数で判定される（trim のみ）。
 
 ### 入力補完（エディタ機能・Markdown記法ではない）
 
