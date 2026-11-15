@@ -27,7 +27,31 @@ $$
 
 図で書くと以下のようになる。
 
-![KAK decomposition tensor network](/images/intro-kak-decomposition/kak-tn.png)
+```html-embed
+<div class="kak" role="img" aria-label="KAK分解の回路図: 大域位相 e^{iφ} を除いて、量子ビット1と2にそれぞれ1量子ビットゲート K'1, K'2 を作用させ、次に2量子ビットにまたがる exp(i Σ c_α σ1α σ2α)、最後に K1, K2 を作用させる">
+<div class="pre"><math><mrow><mi>U</mi><mspace width="0.2778em"></mspace><mo>=</mo><mspace width="0.2778em"></mspace></mrow><mrow><msup><mrow><mi mathvariant="normal">e</mi></mrow><mrow><mrow><mi mathvariant="normal">i</mi></mrow><mi>ϕ</mi></mrow></msup><mspace width="0.2778em"></mspace><mo>⋅</mo></mrow></math></div>
+<div class="grid">
+<div class="lab r1"><math><mn>1</mn></math></div><div class="lab r2"><math><mn>2</mn></math></div>
+<div class="wire r1"></div><div class="wire r2"></div>
+<div class="g r1 c3"><math><msubsup><mi>K</mi><mn>1</mn><mo lspace="0em" rspace="0em" class="tml-prime">′</mo></msubsup></math></div><div class="g r2 c3"><math><msubsup><mi>K</mi><mn>2</mn><mo lspace="0em" rspace="0em" class="tml-prime">′</mo></msubsup></math></div>
+<div class="g big"><math><mrow><mrow><mi>exp</mi><mo>⁡</mo></mrow><mo fence="true" symmetric="true" minsize="1.2em" maxsize="1.2em">(</mo><mrow><mi mathvariant="normal">i</mi></mrow><msub><mo>∑</mo><mi>α</mi></msub><msub><mi>c</mi><mi>α</mi></msub><msub><mi>σ</mi><mrow><mn>1</mn><mi>α</mi></mrow></msub><msub><mi>σ</mi><mrow><mn>2</mn><mi>α</mi></mrow></msub><mo fence="true" symmetric="true" minsize="1.2em" maxsize="1.2em">)</mo></mrow></math></div>
+<div class="g r1 c7"><math><msub><mi>K</mi><mn>1</mn></msub></math></div><div class="g r2 c7"><math><msub><mi>K</mi><mn>2</mn></msub></math></div>
+</div>
+</div>
+<style>
+:root{--fg:#1f2328;--bg:#ffffff}
+[data-theme="dark"]{--fg:#e6edf3;--bg:#0d1117}
+.kak{background:var(--bg);color:var(--fg);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 12px;padding:12px 8px}
+math{font-size:18px}
+.grid{display:grid;grid-template-columns:auto minmax(10px,28px) auto minmax(10px,40px) auto minmax(10px,40px) auto minmax(10px,28px);grid-template-rows:56px 56px;align-items:center}
+.r1{grid-row:1}.r2{grid-row:2}
+.lab{grid-column:1;padding-right:6px}
+.wire{grid-column:2/-1;height:0;border-top:2px solid var(--fg)}
+.g{position:relative;z-index:1;background:var(--bg);border:2px solid var(--fg);padding:4px 8px;justify-self:center}
+.c3{grid-column:3}.c7{grid-column:7}
+.big{grid-column:5;grid-row:1/3;align-self:stretch;margin:4px 0;display:flex;align-items:center;padding:0 12px}
+</style>
+```
 
 ここで
 

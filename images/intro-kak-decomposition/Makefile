@@ -1,8 +1,9 @@
-.PHONY: all pdf png clean distclean
+.PHONY: all pdf png embed clean distclean
 
 # Usage:
 #   make            # build PNG (default)
 #   make png        # build PNG from TEX
+#   make embed      # build html-embed HTML (kak-tn.embed.html) via Temml
 #   make pdf        # build PDF with pdflatex (via latexmk)
 #   make clean      # remove aux files
 #   make distclean  # remove aux + PDF/PNG
@@ -46,6 +47,11 @@ $(OUT_PNG): $(OUT_PDF)
 	  echo "No PDF->PNG converter found. Install ImageMagick (magick/convert) or poppler (pdftocairo/pdftoppm)."; \
 	  exit 1; \
 	fi
+
+embed: kak-tn.embed.html
+
+kak-tn.embed.html: kak-tn-embed.mjs
+	node $< > $@
 
 clean:
 	$(LATEXMK) -c
