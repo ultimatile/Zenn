@@ -4,12 +4,15 @@ Zenn CLIで管理する記事リポジトリ。記事は `articles/<slug>.md`、
 
 ## 運用コマンド
 
-- 新規記事: `./new.sh <slug>`（`npx zenn new:article --slug <slug> --title mytitle --type tech --emoji 🦀` のラッパ）
-- プレビュー: `npx zenn preview`（`preview.sh`）
+package.json の `scripts` にまとめてある。`zenn-cli` の更新は dependabot のPRで行う（実行のたびに `@latest` を入れない）。
+
+- 新規記事: `npm run new <slug>`（`zenn new:article --slug <slug> --title mytitle --type tech --emoji 🦀`。slugを省くとzenn-cliがランダムなslugを付ける）
+- 新規本: `npm run new:book <slug>`
+- プレビュー: `npm run preview`（`zenn preview --open`）
 
 ## Frontmatter schema
 
-各記事の先頭。`new.sh` のデフォルトは `type: tech` / `emoji: 🦀`。
+各記事の先頭。`npm run new` のデフォルトは `type: tech` / `emoji: 🦀`。
 
 ```yaml
 ---

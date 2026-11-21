@@ -5,6 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "new": "sh -c 'zenn new:article --title mytitle --type tech --emoji 🦀 ${1:+--slug \"$1\"}' --",
+    "new:book": "sh -c 'zenn new:book --title mytitle ${1:+--slug \"$1\"}' --",
+    "preview": "zenn preview --open",
     "lint:text": "textlint articles/**/*.md",
     "lint:text:fix": "textlint --fix articles/**/*.md",
     "lint:register": "node scripts/lint-register.mjs",
