@@ -3,7 +3,7 @@
 # Usage:
 #   make            # build PNG (default)
 #   make png        # build PNG from TEX
-#   make embed      # build html-embed HTML (kak-tn.embed.html) via Temml
+#   make embed      # build html-embed HTML (kak-tn.embed.html, weyl-chamber.embed.html) via Temml
 #   make pdf        # build PDF with pdflatex (via latexmk)
 #   make clean      # remove aux files
 #   make distclean  # remove aux + PDF/PNG
@@ -48,10 +48,13 @@ $(OUT_PNG): $(OUT_PDF)
 	  exit 1; \
 	fi
 
-embed: kak-tn.embed.html
+embed: kak-tn.embed.html weyl-chamber.embed.html
 
 kak-tn.embed.html: kak-tn-embed.mjs
 	node $< > $@
+
+weyl-chamber.embed.html: weyl-chamber-embed.mjs
+	node $<
 
 clean:
 	$(LATEXMK) -c
